@@ -596,7 +596,7 @@ const options: swaggerJsdoc.Options = {
     paths: {}
   },
   // apis: isProduction ? [path.join(__dirname, '/Swagger/*.js')] : ['./src/swagger/*.ts']
-  apis: [path.join(__dirname, './dist/Swagger/*.js')]
+  apis: [path.join(__dirname, '/*.js')]
 }
 console.log([path.join(__dirname, './dist/Swagger/*.js')])
 
