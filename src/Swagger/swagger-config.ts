@@ -595,9 +595,8 @@ const options: swaggerJsdoc.Options = {
     ],
     paths: {}
   },
-  apis: isProduction
-    ? [path.join(__dirname, './swagger/*.js')] // For production (compiled JS files)
-    : ['./src/swagger/*.ts']
+  // apis: isProduction ? ['./dist/swagger/*.js'] : ['./src/swagger/*.ts']
+  apis: ['./dist/swagger/*.js']
 }
 
 const specs = swaggerJsdoc(options)
