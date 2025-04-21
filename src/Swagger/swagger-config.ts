@@ -1,6 +1,8 @@
 import { Express } from 'express'
 import swaggerJsdoc from 'swagger-jsdoc'
 import swaggerUi from 'swagger-ui-express'
+import { isProduction } from '../constants/config'
+import path from 'path'
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -593,7 +595,9 @@ const options: swaggerJsdoc.Options = {
     ],
     paths: {}
   },
-  apis: ['./src/swagger/*.ts'] // paths to files containing OpenAPI specifications
+  apis: isProduction
+    ? [path.join(__dirname, './swagger/*.js')] // For production (compiled JS files)
+    : ['./src/swagger/*.ts']
 }
 
 const specs = swaggerJsdoc(options)
