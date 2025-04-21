@@ -18,7 +18,7 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: 'https://api-movie.vercel.com',
+        url: 'https://bookmovie-5n6n.onrender.com/',
         description: 'Production server'
       },
       {
