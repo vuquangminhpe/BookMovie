@@ -11,7 +11,7 @@ import { createServer } from 'http'
 import helmet from 'helmet'
 import { envConfig } from './constants/config'
 import cinemaRouter from './routes/cinema.routes'
-import { setupSwaggerDocs } from '../src/Swagger/setupSwaggerDocs'
+import { setupSwaggerDocs } from './Swagger/setupSwaggerDocs'
 
 config()
 databaseService
