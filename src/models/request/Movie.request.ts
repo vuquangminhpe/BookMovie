@@ -11,7 +11,6 @@ export interface CreateMovieReqBody {
   director: string
   cast: string[]
   poster_url: string
-  trailer_url?: string
   status?: MovieStatus
 }
 
@@ -25,7 +24,6 @@ export interface UpdateMovieReqBody {
   director?: string
   cast?: string[]
   poster_url?: string
-  trailer_url?: string
   status?: MovieStatus
 }
 

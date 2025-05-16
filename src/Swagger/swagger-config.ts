@@ -96,10 +96,6 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               description: 'URL to movie poster image'
             },
-            trailer_url: {
-              type: 'string',
-              description: 'URL to movie trailer'
-            },
             status: {
               type: 'string',
               enum: ['coming_soon', 'now_showing', 'ended'],

@@ -1,77 +1,65 @@
-import { SendEmailCommand, SESClient } from '@aws-sdk/client-ses'
+// src/utils/sendmail.ts
+import { Resend } from 'resend'
 import { config } from 'dotenv'
 import { envConfig } from '../constants/config'
+import databaseService from '../services/database.services'
+import { ObjectId } from 'mongodb'
+import { UserVerifyStatus } from '../constants/enums'
+import { Server } from 'socket.io'
+
 config()
 
-// Create SES service object.
-const sesClient = new SESClient({
-  region: envConfig.region as string,
-  credentials: {
-    secretAccessKey: envConfig.secretAccessKey as string,
-    accessKeyId: envConfig.accessKeyId as string
+// Khởi tạo Resend với API key
+const resendApiKey = process.env.RESEND_API_KEY
+const resend = new Resend(resendApiKey)
+
+// Kiểm tra API key
+if (!resendApiKey) {
+  console.error('❌ RESEND_API_KEY chưa được cấu hình. Vui lòng thêm API key vào file .env hoặc config.')
+}
+
+// Địa chỉ email người gửi
+
+// Tạo mã xác thực ngẫu nhiên 6 chữ số
+export const generateVerificationCode = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
+// Hàm gửi email cơ bản bằng Resend
+export const sendEmail = async (
+  toAddress: string,
+  subject: string,
+  htmlBody: string,
+  textBody: string = ''
+): Promise<boolean> => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Acme <onboarding@resend.dev>',
+      to: toAddress,
+      subject: subject,
+      html: htmlBody,
+      text: textBody || htmlBody.replace(/<[^>]*>/g, '')
+    })
+
+    if (error) {
+      console.error('❌ Lỗi gửi email:', error)
+      return false
+    }
+
+    console.log('✅ Email gửi thành công:', data?.id)
+    return true
+  } catch (error) {
+    console.error('❌ Lỗi gửi email:', error)
+    return false
   }
-})
-
-const createSendEmailCommand = ({
-  fromAddress,
-  toAddresses,
-  ccAddresses = [],
-  body,
-  subject,
-  replyToAddresses = []
-}: {
-  fromAddress: string
-  toAddresses: string | string[]
-  ccAddresses?: string | string[]
-  body: string
-  subject: string
-  replyToAddresses?: string | string[]
-}) => {
-  return new SendEmailCommand({
-    Destination: {
-      /* required */
-      CcAddresses: ccAddresses instanceof Array ? ccAddresses : [ccAddresses],
-      ToAddresses: toAddresses instanceof Array ? toAddresses : [toAddresses]
-    },
-    Message: {
-      /* required */
-      Body: {
-        /* required */
-        Html: {
-          Charset: 'UTF-8',
-          Data: body
-        }
-      },
-      Subject: {
-        Charset: 'UTF-8',
-        Data: subject
-      }
-    },
-    Source: fromAddress,
-    ReplyToAddresses: replyToAddresses instanceof Array ? replyToAddresses : [replyToAddresses]
-  })
 }
 
-export const sendVerifyEmail = async (toAddress: string, subject: string, body: string) => {
-  const sendEmailCommand = createSendEmailCommand({
-    fromAddress: envConfig.fromAddress as string,
-    toAddresses: toAddress,
-    body,
-    subject
-  })
-
-  return sesClient.send(sendEmailCommand)
-}
-
-// HTML template directly in the code
-const verifyEmailTemplate = `<html lang="en">
+// Template HTML cho mã xác thực
+const verificationCodeTemplate = `<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Email Verification</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
     <style>
       * {
         margin: 0;
@@ -80,228 +68,196 @@ const verifyEmailTemplate = `<html lang="en">
       }
 
       body {
-        font-family: 'Nunito', sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         background-color: #f5f7fb;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
+        color: #333;
+        line-height: 1.6;
       }
 
       .container {
         max-width: 600px;
-        width: 100%;
-        background-color: #fff;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow:
-          0 4px 6px -1px rgba(0, 0, 0, 0.1),
-          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       }
 
       .header {
-        background: linear-gradient(135deg, #365cce 0%, #4b7bec 100%);
-        padding: 40px 20px;
         text-align: center;
-        position: relative;
+        padding: 20px 0;
+        border-bottom: 1px solid #eaeaea;
       }
 
-      .header::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 40px;
-        background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.1));
-      }
-
-      .logo-wrapper {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 15px;
-        margin-bottom: 25px;
-      }
-
-      .divider {
-        width: 40px;
-        height: 2px;
-        background-color: rgba(255, 255, 255, 0.8);
-        border-radius: 1px;
-      }
-
-      .logo-icon {
-        color: #fff;
-        transition: transform 0.3s ease;
-      }
-
-      .logo-icon:hover {
-        transform: scale(1.1);
-      }
-
-      .header-text {
-        color: #fff;
-      }
-
-      .header-subtitle {
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        margin-bottom: 12px;
-        opacity: 0.9;
-      }
-
-      .header-title {
-        font-size: 28px;
-        font-weight: 700;
-        text-transform: capitalize;
+      .logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: #4b7bec;
+        margin-bottom: 10px;
       }
 
       .content {
-        padding: 40px 30px;
+        padding: 30px 20px;
       }
 
       .greeting {
-        color: #1f2937;
         font-size: 18px;
-        font-weight: 600;
         margin-bottom: 20px;
       }
 
-      .time-text {
-        color: #4b5563;
-        font-size: 16px;
+      .verification-code {
+        text-align: center;
+        font-size: 32px;
+        letter-spacing: 5px;
+        font-weight: bold;
+        color: #4b7bec;
+        margin: 30px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        border: 1px dashed #dee2e6;
       }
 
-      .time-highlight {
-        color: #365cce;
-        font-weight: 700;
+      .timer {
+        text-align: center;
+        color: #e74c3c;
+        font-weight: bold;
+        margin: 20px 0;
       }
 
-      .verify-button {
-        display: inline-block;
-        margin-top: 30px;
-        padding: 12px 32px;
-        background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-        color: white;
-        font-weight: 600;
-        font-size: 16px;
-        text-decoration: none;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.2);
-      }
-
-      .verify-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 8px -1px rgba(249, 115, 22, 0.3);
-      }
-
-      .verify-button:active {
-        transform: translateY(0);
-      }
-
-      .signature {
-        margin-top: 40px;
-        color: #4b5563;
-        font-size: 16px;
-        line-height: 1.6;
-      }
-
-      .team-name {
-        font-weight: 600;
-        color: #365cce;
-      }
-
-      @media (max-width: 640px) {
-        .container {
-          margin: 10px;
-        }
-
-        .header {
-          padding: 30px 15px;
-        }
-
-        .content {
-          padding: 30px 20px;
-        }
-
-        .header-title {
-          font-size: 24px;
-        }
-
-        .verify-button {
-          width: 100%;
-          text-align: center;
-        }
+      .footer {
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid #eaeaea;
+        color: #6c757d;
+        font-size: 14px;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <header class="header">
-        <div class="logo-wrapper">
-          <div class="divider"></div>
-          <svg
-            class="logo-icon"
-            stroke="currentColor"
-            fill="currentColor"
-            stroke-width="0"
-            viewBox="0 0 24 24"
-            height="24"
-            width="24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path fill="none" d="M0 0h24v24H0V0z"></path>
-            <path
-              d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"
-            ></path>
-          </svg>
-          <div class="divider"></div>
-        </div>
-        <div class="header-text">
-          <div class="header-title">Verify your E-mail Address</div>
-        </div>
-      </header>
+      <div class="header">
+        <div class="logo">Your App Name</div>
+        <h2>Email Verification</h2>
+      </div>
 
-      <main class="content">
-        <h4 class="greeting">Hello {{name}}</h4>
-        <p class="time-text">Please verify your email address within <span class="time-highlight">2 minutes</span></p>
-        <a href="{{link}}" class="verify-button"> Verify here </a>
-        <p class="signature">Thank you,<br /></p>
-      </main>
+      <div class="content">
+        <h3 class="greeting">Hello {{name}},</h3>
+        <p>Thank you for registering. To complete your registration, please use the verification code below:</p>
+        
+        <div class="verification-code">{{code}}</div>
+        
+        <div class="timer">This code will expire in 2 minutes.</div>
+        
+        <p>If you did not request this verification, please ignore this email.</p>
+      </div>
+
+      <div class="footer">
+        <p>© 2025 Your App Name. All rights reserved.</p>
+      </div>
     </div>
   </body>
 </html>`
 
-export const verifyEmail = (toAddress: string, email_verify_token: string, template: string = verifyEmailTemplate) => {
-  return sendVerifyEmail(
-    toAddress,
-    'Verify your email',
-    template
-      .replace('{{link}}', `${envConfig.client_url}/verify-email?token=${email_verify_token}`)
-      .replace('{{name}}', `${toAddress.split('@')[0]?.split('+')[0]}`)
-  )
+// Gửi mã xác thực đến email người dùng
+export const sendVerificationCode = async (toAddress: string, code: string): Promise<boolean> => {
+  const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
+  const subject = 'Your Verification Code'
+
+  const htmlBody = verificationCodeTemplate.replace('{{name}}', name).replace('{{code}}', code)
+
+  return await sendEmail(toAddress, subject, htmlBody)
 }
 
-export const verifyForgotPassword = (
-  activeName: boolean,
-  toAddress: string,
-  verify_token: string,
-  template: string = verifyEmailTemplate
-) => {
-  return sendVerifyEmail(
-    toAddress,
-    'Verify your email',
-    template
-      .replace(
-        '{{link}}',
-        `${envConfig.client_url}/${activeName ? 'verify-forgot-password' : 'verify-email'}?token=${verify_token}`
-      )
-      .replace('{{name}}', `${toAddress.split('@')[0]?.split('+')[0]}`)
-  )
+// Thiết lập Socket.io để thông báo hết hạn mã xác thực
+let ioInstance: Server | null = null
+
+export const setSocketIoInstance = (io: Server) => {
+  ioInstance = io
 }
+
+// Xử lý hết hạn mã xác thực
+export const setupVerificationExpiration = (user_id: string, expirationTime: Date) => {
+  const timeUntilExpiration = expirationTime.getTime() - Date.now()
+
+  if (timeUntilExpiration <= 0) return
+
+  setTimeout(async () => {
+    // Kiểm tra nếu người dùng vẫn chưa xác thực
+    const user = await databaseService.users.findOne({
+      _id: new ObjectId(user_id)
+    })
+
+    if (user && user.verify === UserVerifyStatus.Unverified) {
+      // Xóa hoặc vô hiệu hóa mã xác thực
+      await databaseService.users.updateOne(
+        { _id: new ObjectId(user_id) },
+        {
+          $set: {
+            email_verify_code: '',
+            verify_code_expires_at: null
+          }
+        }
+      )
+
+      // Thông báo cho client thông qua socket nếu cần
+      if (ioInstance) {
+        ioInstance.to(user_id).emit('verification_expired', {
+          message: 'Verification code has expired'
+        })
+      }
+
+      console.log(`Verification code for user ${user_id} has expired and been invalidated`)
+    }
+  }, timeUntilExpiration)
+}
+
+// Hàm gửi mã đặt lại mật khẩu
+export const sendPasswordResetCode = async (toAddress: string, code: string): Promise<boolean> => {
+  const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
+  const subject = 'Password Reset Code'
+
+  const htmlBody = verificationCodeTemplate
+    .replace('{{name}}', name)
+    .replace('{{code}}', code)
+    .replace('Email Verification', 'Password Reset')
+    .replace('To complete your registration', 'To reset your password')
+
+  return await sendEmail(toAddress, subject, htmlBody)
+}
+
+// Xác minh kết nối Resend
+export const verifyResendConnection = async (): Promise<boolean> => {
+  try {
+    // Kiểm tra API key bằng cách gửi email đến địa chỉ không tồn tại
+    // Sẽ kích hoạt lỗi nhưng vẫn có thể xác minh kết nối
+    await resend.emails.send({
+      from: 'Acme <onboarding@resend.dev>',
+      to: 'verify@example.com',
+      subject: 'API Connection Test',
+      html: '<p>This is a test email to verify API connectivity.</p>'
+    })
+    console.log('✅ Kết nối Resend API thành công')
+    return true
+  } catch (error: any) {
+    // Kiểm tra xem lỗi có phải do API key không hợp lệ
+    if (error?.statusCode === 401) {
+      console.error('❌ API key không hợp lệ. Vui lòng kiểm tra lại.')
+      return false
+    }
+
+    // Nếu lỗi khác (ví dụ: email không hợp lệ) nhưng API key hợp lệ
+    if (error?.statusCode === 422) {
+      console.log('✅ API key hợp lệ, nhưng địa chỉ email thử nghiệm không hợp lệ.')
+      return true
+    }
+
+    console.error('❌ Lỗi kết nối Resend API:', error)
+    return false
+  }
+}
+
+// Kiểm tra kết nối khi import module
+verifyResendConnection().catch((err) => {
+  console.error('❌ Lỗi xác minh kết nối Resend:', err)
+})

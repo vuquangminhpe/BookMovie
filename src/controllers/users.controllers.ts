@@ -27,36 +27,12 @@ import { pick } from 'lodash'
 import { hashPassword, verifyPassword } from '../utils/crypto'
 import { config } from 'dotenv'
 import { envConfig } from '../constants/config'
+import { ErrorWithStatus } from '../models/Errors'
 config()
 export const loginController = async (req: Request<ParamsDictionary, any, LoginReqBody>, res: Response) => {
   const user = req.user as User
   const user_id = user._id as ObjectId
-  // const adminUser = {
-  //   _id: new ObjectId('12321231231256789abcdef0'),
-  //   name: 'System Administrator',
-  //   email: 'admin@yourdomain.com',
-  //   username: 'sysadmin',
-  //   password: hashPassword('Admin@123'),
-  //   bio: 'System Administrator with full access rights',
-  //   date_of_birth: new Date('1990-01-01'),
-  //   verify: 1,
-  //   role: 'admin',
-  //   typeAccount: 2,
-  //   count_type_account: 0,
-  //   email_verify_token: '',
-  //   forgot_password_token: '',
-  //   twitter_circle: [],
-  //   is_online: false,
-  //   last_active: new Date(),
-  //   created_at: new Date('2025-01-01'),
-  //   updated_at: new Date(),
-  //   avatar: '',
-  //   cover_photo: '',
-  //   location: '',
-  //   website: ''
-  // }
 
-  // await databaseService.users.insertOne(adminUser as any)
   const result = await usersService.login({ user_id: user_id.toString(), verify: UserVerifyStatus.Verified })
   res.status(200).json({
     message: USERS_MESSAGES.LOGIN_SUCCESS,
@@ -125,11 +101,28 @@ export const searchUsersByNameController = async (req: Request, res: Response) =
 
 export const getAllUsersController = async (req: Request, res: Response) => {
   try {
+    const { user_id } = req.decode_authorization as TokenPayload
+    console.log(user_id);
+    
+    const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
     const page = parseInt(req.query.page as string) || 1
     const limit = parseInt(req.query.limit as string) || 10
-
+    if (user?.role !== 'admin') {
+      res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        message: USERS_MESSAGES.VALIDATION_ERROR
+      })
+      return
+    }
+    const result = await usersService.getAllUsers(page, limit)
     res.json({
-      message: 'Fetched users successfully'
+      message: 'Fetched users successfully',
+      result: {
+        users: result.users,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages
+      }
     })
   } catch (error) {
     console.error('Error fetching users:', error)
@@ -327,4 +320,30 @@ export const generateTextGeminiController = async (req: Request<ParamsDictionary
   res.json({
     data: result
   })
+}
+export const verifyEmailCodeController = async (req: Request, res: Response) => {
+  const { email, code } = req.body
+
+  if (!email || !code) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      message: 'Email and verification code are required'
+    })
+    return
+  }
+
+  try {
+    const result = await usersService.verifyEmailWithCode(email, code)
+    res.json({
+      message: USERS_MESSAGES.EMAIL_VERIFY_SUCCESS,
+      ...result
+    })
+  } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      res.status(error.status).json({ message: error.message })
+    } else {
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        message: 'Internal server error'
+      })
+    }
+  }
 }

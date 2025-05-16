@@ -10,7 +10,7 @@ import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
 import axios from 'axios'
 import { config } from 'dotenv'
-import { verifyEmail as sendVerifyEmail, verifyEmail, verifyForgotPassword } from '../utils/sendmail'
+import { generateVerificationCode, sendVerificationCode, setupVerificationExpiration } from '../utils/sendmail'
 import { envConfig } from '../constants/config'
 import valkeyService from './valkey.services'
 import { GoogleGenerativeAI } from '@google/generative-ai'
@@ -80,21 +80,41 @@ class UserService {
   }
   async register(payload: RegisterReqBody) {
     const user_id = new ObjectId()
-    const email_verify_token = await this.signEmailVerifyToken({
-      user_id: user_id.toString(),
-      verify: UserVerifyStatus.Unverified
-    })
+
+    // Tạo mã xác thực 6 chữ số
+    const verificationCode = generateVerificationCode()
+
+    // Tính thời gian hết hạn (2 phút từ hiện tại)
+    const expirationTime = new Date(Date.now() + 2 * 60 * 1000)
+
+    // Lưu thông tin user kèm mã xác thực và thời gian hết hạn
     await databaseService.users.insertOne(
       new User({
         ...payload,
         _id: user_id,
         role: UserRole.Student,
-        email_verify_token: email_verify_token,
-        password: hashPassword(payload.password)
+        email_verify_code: verificationCode,
+        verify_code_expires_at: expirationTime,
+        password: hashPassword(payload.password),
+        verify: UserVerifyStatus.Unverified,
+        date_of_birth: payload.date_of_birth ? new Date(payload.date_of_birth) : null
       })
     )
 
-    return {}
+    // Gửi mã xác thực qua email
+    const emailSent = await sendVerificationCode(payload.email, verificationCode)
+
+    if (!emailSent) {
+      console.error(`Failed to send verification email to ${payload.email}`)
+    }
+
+    // Thiết lập hẹn giờ xóa mã xác thực khi hết hạn
+    setupVerificationExpiration(user_id.toString(), expirationTime)
+
+    return {
+      message: USERS_MESSAGES.REGISTER_SUCCESS,
+      user_id: user_id.toString()
+    }
   }
   async refreshToken(user_id: string, verify: UserVerifyStatus, refresh_token: string) {
     const [new_access_token, new_refresh_token] = await Promise.all([
@@ -212,7 +232,7 @@ class UserService {
       token: refresh_token,
       created_at: new Date()
     })
-    // https://tweeterclone-six.vercel.app
+
     return access_token
   }
   async logout(refresh_token: string) {
@@ -222,7 +242,58 @@ class UserService {
       message: USERS_MESSAGES.LOGOUT_SUCCESS
     }
   }
+  async verifyEmailWithCode(email: string, code: string) {
+    // Tìm user theo email và mã xác thực
+    const user = await databaseService.users.findOne({
+      email,
+      email_verify_code: code
+    })
 
+    if (!user) {
+      throw new ErrorWithStatus({
+        message: 'Invalid verification code',
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    // Kiểm tra mã có hết hạn chưa
+    if (user.verify_code_expires_at && user.verify_code_expires_at < new Date()) {
+      throw new ErrorWithStatus({
+        message: 'Verification code has expired',
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    // Cập nhật user thành đã xác thực
+    await databaseService.users.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          email_verify_code: '',
+          verify_code_expires_at: null,
+          verify: UserVerifyStatus.Verified
+        },
+        $currentDate: {
+          updated_at: true
+        }
+      }
+    )
+
+    // Tạo token để đăng nhập
+    const [access_token, refresh_token] = await this.signAccessAndRefreshToken({
+      user_id: user._id.toString(),
+      verify: UserVerifyStatus.Verified
+    })
+
+    // Lưu refresh token
+    const expiryInSeconds = envConfig.token_expiry_seconds || 604800
+    await valkeyService.storeRefreshToken(user._id.toString(), refresh_token, expiryInSeconds)
+
+    return {
+      access_token,
+      refresh_token
+    }
+  }
   async verifyEmail(user_id: string) {
     await databaseService.users.updateOne(
       { _id: new ObjectId(user_id) },
@@ -251,19 +322,50 @@ class UserService {
   }
 
   async resendVerifyEmail(user_id: string) {
-    const email_verify_token = await this.signEmailVerifyToken({ user_id, verify: UserVerifyStatus.Unverified })
+    // Tạo mã xác thực mới
+    const verificationCode = generateVerificationCode()
 
+    // Tính thời gian hết hạn mới (2 phút từ hiện tại)
+    const expirationTime = new Date(Date.now() + 2 * 60 * 1000)
+
+    // Lấy thông tin user
+    const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
+
+    if (!user) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Cập nhật mã xác thực mới
     await databaseService.users.updateOne(
       { _id: new ObjectId(user_id) },
       {
         $set: {
-          email_verify_token
+          email_verify_code: verificationCode,
+          verify_code_expires_at: expirationTime
         },
         $currentDate: {
           updated_at: true
         }
       }
     )
+
+    // Gửi mã mới qua email
+    const emailSent = await sendVerificationCode(user.email, verificationCode)
+
+    if (!emailSent) {
+      console.error(`Failed to resend verification email to ${user.email}`)
+      throw new ErrorWithStatus({
+        message: 'Failed to send verification email',
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR
+      })
+    }
+
+    // Thiết lập hẹn giờ xóa mã xác thực mới khi hết hạn
+    setupVerificationExpiration(user_id, expirationTime)
+
     return {
       message: USERS_MESSAGES.RESEND_VERIFY_EMAIL_SUCCESS
     }
@@ -283,7 +385,7 @@ class UserService {
         }
       }
     )
-    verifyForgotPassword(true, user?.username as string, forgot_password_token)
+    // verifyForgotPassword(true, user?.username as string, forgot_password_token)
     return {
       message: USERS_MESSAGES.CHECK_EMAIL_TO_RESET_PASSWORD
     }
@@ -442,6 +544,35 @@ class UserService {
     const aiResponseText = response.text()
 
     return await extractContentAndInsertToDB(aiResponseText)
+  }
+  async getAllUsers(page: number, limit: number) {
+    const skip = (page - 1) * limit
+    const users = await databaseService.users
+      .find(
+        {},
+        {
+          projection: {
+            _id: 1,
+            name: 1,
+            username: 1,
+            email: 1,
+            avatar: 1
+          }
+        }
+      )
+      .skip(skip)
+      .limit(limit)
+      .toArray()
+
+    const totalUsers = await databaseService.users.countDocuments({})
+
+    return {
+      users,
+      total: totalUsers,
+      page,
+      limit,
+      totalPages: Math.ceil(totalUsers / limit)
+    }
   }
 }
 

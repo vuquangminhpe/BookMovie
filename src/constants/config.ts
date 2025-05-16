@@ -23,7 +23,6 @@ export const envConfig = {
   region: process.env.AWS_REGION,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  fromAddress: process.env.SES_FROM_ADDRESS,
   client_redirect: process.env.CLIENT_REDIRECT_CALLBACK,
   secretOnPublicKey_Forgot: process.env.JWT_SECRET_FORGOT_PASSWORD_TOKEN,
   secretOnPublicKey_Refresh: process.env.JWT_SECRET_REFRESH_TOKEN,
@@ -39,6 +38,15 @@ export const envConfig = {
   redirect_uri: process.env.GOOGLE_REDIRECT_URI,
   client_url: process.env.CLIENT_URL,
   token_expiry_seconds: parseInt(process.env.DB_REFRESH_TOKENS_COLLECTION || '604800'),
+  mailjet_api_key: process.env.MAILJET_API_KEY,
+  mailjet_secret_key: process.env.MAILJET_SECRET_KEY,
+  smtp_host: process.env.SMTP_HOST || 'smtp.gmail.com', // Ví dụ sử dụng Gmail
+  smtp_port: process.env.SMTP_PORT || '587',
+  smtp_secure: process.env.SMTP_SECURE || 'false',
+  smtp_user: process.env.SMTP_USER || 'your-email@gmail.com',
+  smtp_pass: process.env.SMTP_PASS || 'your-app-password',
 
+  fromAddress: process.env.MAIL_FROM || 'no-reply@yourdomain.com',
+  sendgrid_api_key: process.env.SENDGRID_API_KEY || '',
   mongodb_url: process.env.MONGODB_URI as string
 }

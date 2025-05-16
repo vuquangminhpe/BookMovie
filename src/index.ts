@@ -16,11 +16,10 @@ import { setupSwaggerDocs } from './Swagger/setupSwaggerDocs'
 config()
 databaseService
   .connect()
-  .then(() => {
-    databaseService.indexVideoStatus()
-    databaseService.createCinemaIndexes()
+  .then(() => {})
+  .catch((error) => {
+    console.error('Failed to connect to MongoDB:', error)
   })
-  .catch()
 
 const app = express()
 const httpServer = createServer(app)

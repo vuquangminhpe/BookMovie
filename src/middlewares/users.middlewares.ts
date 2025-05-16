@@ -141,7 +141,7 @@ const DateOfBirthSchema: ParamSchema = {
 export const loginValidator = validate(
   checkSchema(
     {
-      username: {
+      email: {
         notEmpty: {
           errorMessage: USERS_MESSAGES.EMAIL_IS_REQUIRED
         },
@@ -149,7 +149,7 @@ export const loginValidator = validate(
         custom: {
           options: async (value, { req }) => {
             const user = await databaseService.users.findOne({
-              username: value,
+              email: value,
               password: hashPassword(req.body.password)
             })
 

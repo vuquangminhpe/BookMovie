@@ -38,68 +38,9 @@ class DatabaseService {
       console.log('Connected to MongoDB!')
 
       // Create indexes for cinema collections
-      await this.createCinemaIndexes()
     } catch (error) {
       console.error('MongoDB connection error:', error)
       throw error
-    }
-  }
-
-  async createCinemaIndexes() {
-    // Movie indexes
-    const movieIndexesExist = await this.movies.indexExists(['title_1'])
-    if (!movieIndexesExist) {
-      await this.movies.createIndex({ title: 1 })
-      await this.movies.createIndex({ status: 1 })
-      await this.movies.createIndex({ release_date: -1 })
-    }
-
-    // Theater indexes
-    const theaterIndexesExist = await this.theaters.indexExists(['name_1', 'city_1'])
-    if (!theaterIndexesExist) {
-      await this.theaters.createIndex({ name: 1 })
-      await this.theaters.createIndex({ city: 1 })
-      await this.theaters.createIndex({ location: 1 })
-    }
-
-    // Screen indexes
-    const screenIndexesExist = await this.screens.indexExists(['theater_id_1'])
-    if (!screenIndexesExist) {
-      await this.screens.createIndex({ theater_id: 1 })
-    }
-
-    // Showtime indexes
-    const showtimeIndexesExist = await this.showtimes.indexExists(['movie_id_1', 'theater_id_1'])
-    if (!showtimeIndexesExist) {
-      await this.showtimes.createIndex({ movie_id: 1 })
-      await this.showtimes.createIndex({ theater_id: 1 })
-      await this.showtimes.createIndex({ screen_id: 1 })
-      await this.showtimes.createIndex({ start_time: 1 })
-      await this.showtimes.createIndex({ status: 1 })
-    }
-
-    // Booking indexes
-    const bookingIndexesExist = await this.bookings.indexExists(['user_id_1', 'showtime_id_1'])
-    if (!bookingIndexesExist) {
-      await this.bookings.createIndex({ user_id: 1 })
-      await this.bookings.createIndex({ showtime_id: 1 })
-      await this.bookings.createIndex({ ticket_code: 1 }, { unique: true })
-      await this.bookings.createIndex({ status: 1 })
-    }
-
-    // Payment indexes
-    const paymentIndexesExist = await this.payments.indexExists(['booking_id_1', 'user_id_1'])
-    if (!paymentIndexesExist) {
-      await this.payments.createIndex({ booking_id: 1 }, { unique: true })
-      await this.payments.createIndex({ user_id: 1 })
-      await this.payments.createIndex({ transaction_id: 1 })
-    }
-  }
-
-  async indexVideoStatus() {
-    const exits = await this.videoStatus.indexExists('name_1')
-    if (!exits) {
-      this.videoStatus.createIndex({ name: 1 }, { unique: true })
     }
   }
 

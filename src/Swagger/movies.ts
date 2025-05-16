@@ -143,9 +143,7 @@
  *               poster_url:
  *                 type: string
  *                 example: "https://example.com/poster.jpg"
- *               trailer_url:
- *                 type: string
- *                 example: "https://example.com/trailer.mp4"
+ *
  *               status:
  *                 type: string
  *                 enum: [coming_soon, now_showing, ended]
@@ -247,8 +245,7 @@
  *                   type: string
  *               poster_url:
  *                 type: string
- *               trailer_url:
- *                 type: string
+ *
  *               status:
  *                 type: string
  *                 enum: [coming_soon, now_showing, ended]

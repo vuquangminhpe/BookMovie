@@ -11,7 +11,6 @@ interface MovieType {
   director: string
   cast: string[]
   poster_url: string
-  trailer_url?: string
   status: MovieStatus
   created_at?: Date
   updated_at?: Date
@@ -34,7 +33,6 @@ export default class Movie {
   director: string
   cast: string[]
   poster_url: string
-  trailer_url: string
   status: MovieStatus
   created_at: Date
   updated_at: Date
@@ -50,7 +48,6 @@ export default class Movie {
     director,
     cast,
     poster_url,
-    trailer_url,
     status,
     created_at,
     updated_at
@@ -66,7 +63,6 @@ export default class Movie {
     this.director = director
     this.cast = cast
     this.poster_url = poster_url
-    this.trailer_url = trailer_url || ''
     this.status = status || MovieStatus.COMING_SOON
     this.created_at = created_at || date
     this.updated_at = updated_at || date

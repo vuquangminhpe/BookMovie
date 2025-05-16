@@ -20,7 +20,8 @@ import {
   updateMeController,
   getAllUsersController,
   VerifyForgotPasswordController,
-  searchUsersByNameController
+  searchUsersByNameController,
+  verifyEmailCodeController
 } from '../controllers/users.controllers'
 import {
   AccessTokenValidator,
@@ -42,10 +43,10 @@ const usersRouter = Router()
 
 usersRouter.post('/login', loginValidator, wrapAsync(loginController))
 usersRouter.get('/oauth/google', wrapAsync(oauthController))
-
-usersRouter.post('/register', wrapAsync(registerController))
+usersRouter.post('/verify_status_user', wrapAsync(verifyEmailCodeController))
+usersRouter.post('/register', registerValidator,wrapAsync(registerController))
 usersRouter.post('/logout', AccessTokenValidator, RefreshTokenValidator, wrapAsync(logoutController))
-
+usersRouter.get('/get_all_user',AccessTokenValidator, wrapAsync(getAllUsersController))
 /**
  * Description: refresh token
  * Path: /refresh-token
@@ -160,5 +161,5 @@ usersRouter.post(
   changePasswordValidator,
   wrapAsync(changePasswordController)
 )
-
+usersRouter.post('/verify-email-code', wrapAsync(verifyEmailCodeController))
 export default usersRouter

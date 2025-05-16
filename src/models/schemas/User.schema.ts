@@ -1,7 +1,6 @@
 import { ObjectId } from 'mongodb'
 import { UserVerifyStatus } from '../../constants/enums'
 
-// Add this enum to User.schema.js
 export enum UserRole {
   Student = 'student',
   Teacher = 'teacher',
@@ -9,24 +8,27 @@ export enum UserRole {
 }
 
 export default class UserType {
-  // Existing fields
   _id?: ObjectId
   password: string
   created_at?: Date
   updated_at?: Date
+  email: string
   email_verify_token?: string
   forgot_password_token?: string
   verify?: UserVerifyStatus
-  role: UserRole // Add this field
-  name: string
+  role: UserRole
+  email_verify_code?: string
+  verify_code_expires_at: Date | null
+  name?: string
+  date_of_birth?: Date | null
   username?: string
   avatar?: string
   class: string
 
   constructor(user: UserType) {
-    // Existing initialization
     const date = new Date()
     this._id = user._id
+    this.email = user.email
     this.password = user.password
     this.created_at = user.created_at || date
     this.updated_at = user.updated_at || date
@@ -34,9 +36,12 @@ export default class UserType {
     this.forgot_password_token = user.forgot_password_token || ''
     this.verify = user.verify || UserVerifyStatus.Unverified
     this.role = user.role || UserRole.Student
+    this.date_of_birth = user.date_of_birth
     this.username = user.username || ''
     this.avatar = user.avatar || ''
     this.name = user.name || ''
     this.class = user.class || ''
+    this.email_verify_code = user.email_verify_code || ''
+    this.verify_code_expires_at = user.verify_code_expires_at || null
   }
 }
