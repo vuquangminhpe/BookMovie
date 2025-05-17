@@ -25,7 +25,7 @@ databaseService
 
 const app = express()
 const httpServer = createServer(app)
-const port =  3002
+const port = process.env.PORT || 3002
 
 // Set up Socket.io for server-side monitoring only
 const io = new SocketServer(httpServer, {
