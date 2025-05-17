@@ -21,7 +21,9 @@ import {
   getAllUsersController,
   VerifyForgotPasswordController,
   searchUsersByNameController,
-  verifyEmailCodeController
+  verifyEmailCodeController,
+  verifyRegistrationCodeController,
+  checkRegistrationStatusController
 } from '../controllers/users.controllers'
 import {
   AccessTokenValidator,
@@ -162,4 +164,20 @@ usersRouter.post(
   wrapAsync(changePasswordController)
 )
 usersRouter.post('/verify-email-code', wrapAsync(verifyEmailCodeController))
+
+/**
+ * Description: Verify registration code sent to email
+ * Path: /verify-registration
+ * method: POST
+ * body: { email: string, code: string }
+ */
+usersRouter.post('/verify-registration', wrapAsync(verifyRegistrationCodeController))
+
+/**
+ * Description: Check registration status and remaining time
+ * Path: /check-registration-status
+ * method: GET
+ * query: { email: string }
+ */
+usersRouter.get('/check-registration-status', wrapAsync(checkRegistrationStatusController))
 export default usersRouter

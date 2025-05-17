@@ -12,6 +12,8 @@ import helmet from 'helmet'
 import { envConfig } from './constants/config'
 import cinemaRouter from './routes/cinema.routes'
 import { setupSwaggerDocs } from './Swagger/setupSwaggerDocs'
+import { Server as SocketServer } from 'socket.io'
+import { initVerificationCodeMonitor } from './utils/verification-monitor'
 
 config()
 databaseService
@@ -23,7 +25,19 @@ databaseService
 
 const app = express()
 const httpServer = createServer(app)
-const port = envConfig.port || 3002
+const port =  3002
+
+// Set up Socket.io for server-side monitoring only
+const io = new SocketServer(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+})
+
+// Initialize server-side verification code monitor
+initVerificationCodeMonitor(io)
+
 app.use(helmet())
 const corsOptions: CorsOptions = {
   origin: '*',

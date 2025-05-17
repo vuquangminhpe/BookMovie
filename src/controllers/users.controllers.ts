@@ -59,11 +59,12 @@ export const registerController = async (
   res: Response,
   next: NextFunction
 ) => {
-  await usersService.register(req.body)
-
-  res.json({
-    message: USERS_MESSAGES.REGISTER_SUCCESS
-  })
+  try {
+    const result = await usersService.register(req.body)
+    res.json(result)
+  } catch (error) {
+    next(error)
+  }
 }
 
 export const searchUsersByNameController = async (req: Request, res: Response) => {
@@ -320,6 +321,60 @@ export const generateTextGeminiController = async (req: Request<ParamsDictionary
   res.json({
     data: result
   })
+}
+
+// New controller to verify registration code
+export const verifyRegistrationCodeController = async (req: Request, res: Response) => {
+  const { email, code } = req.body
+
+  if (!email || !code) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      message: 'Email and verification code are required'
+    })
+    return
+  }
+
+  try {
+    const result = await usersService.verifyRegistrationCode(email, code)
+    res.json({
+      message: USERS_MESSAGES.REGISTRATION_COMPLETED,
+      ...result
+    })
+  } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      res.status(error.status).json({ message: error.message })
+    } else {
+      console.error('Verification error:', error)
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        message: 'Internal server error'
+      })
+    }
+  }
+}
+
+// Controller to check registration status and remaining time
+export const checkRegistrationStatusController = async (req: Request, res: Response) => {
+  const { email } = req.query
+
+  if (!email) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      message: 'Email parameter is required'
+    })
+    return
+  }
+
+  try {
+    const result = await usersService.checkRegistrationStatus(email as string)
+    res.json(result)
+  } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      res.status(error.status).json({ message: error.message })
+    } else {
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        message: 'Internal server error'
+      })
+    }
+  }
 }
 export const verifyEmailCodeController = async (req: Request, res: Response) => {
   const { email, code } = req.body

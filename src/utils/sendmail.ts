@@ -169,14 +169,9 @@ export const sendVerificationCode = async (toAddress: string, code: string): Pro
   return await sendEmail(toAddress, subject, htmlBody)
 }
 
-// Thiết lập Socket.io để thông báo hết hạn mã xác thực
-let ioInstance: Server | null = null
+// Server-side check only for code expiration, no socket events needed
 
-export const setSocketIoInstance = (io: Server) => {
-  ioInstance = io
-}
-
-// Xử lý hết hạn mã xác thực
+// Xử lý hết hạn mã xác thực - Server side only
 export const setupVerificationExpiration = (user_id: string, expirationTime: Date) => {
   const timeUntilExpiration = expirationTime.getTime() - Date.now()
 
@@ -199,13 +194,6 @@ export const setupVerificationExpiration = (user_id: string, expirationTime: Dat
           }
         }
       )
-
-      // Thông báo cho client thông qua socket nếu cần
-      if (ioInstance) {
-        ioInstance.to(user_id).emit('verification_expired', {
-          message: 'Verification code has expired'
-        })
-      }
 
       console.log(`Verification code for user ${user_id} has expired and been invalidated`)
     }
