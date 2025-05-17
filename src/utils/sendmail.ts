@@ -1,31 +1,33 @@
 // src/utils/sendmail.ts
-import { Resend } from 'resend'
+import { SESClient, SendEmailCommand, VerifyEmailIdentityCommand } from '@aws-sdk/client-ses'
 import { config } from 'dotenv'
 import { envConfig } from '../constants/config'
 import databaseService from '../services/database.services'
 import { ObjectId } from 'mongodb'
 import { UserVerifyStatus } from '../constants/enums'
-import { Server } from 'socket.io'
 
 config()
 
-// Khởi tạo Resend với API key
-const resendApiKey = process.env.RESEND_API_KEY
-const resend = new Resend(resendApiKey)
+// Initialize the SES client with AWS credentials
+const sesClient = new SESClient({
+  region: envConfig.region,
+  credentials: {
+    accessKeyId: envConfig.accessKeyId as string,
+    secretAccessKey: envConfig.secretAccessKey as string
+  }
+})
 
-// Kiểm tra API key
-if (!resendApiKey) {
-  console.error('❌ RESEND_API_KEY chưa được cấu hình. Vui lòng thêm API key vào file .env hoặc config.')
+// Check if AWS credentials are configured
+if (!envConfig.accessKeyId || !envConfig.secretAccessKey) {
+  console.error('❌ AWS credentials not configured. Please add accessKeyId and secretAccessKey to your .env file.')
 }
 
-// Địa chỉ email người gửi
-
-// Tạo mã xác thực ngẫu nhiên 6 chữ số
+// Create a random 6-digit verification code
 export const generateVerificationCode = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
-// Hàm gửi email cơ bản bằng Resend
+// Basic email sending function using AWS SES
 export const sendEmail = async (
   toAddress: string,
   subject: string,
@@ -33,28 +35,46 @@ export const sendEmail = async (
   textBody: string = ''
 ): Promise<boolean> => {
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'Acme <onboarding@resend.dev>',
-      to: toAddress,
-      subject: subject,
-      html: htmlBody,
-      text: textBody || htmlBody.replace(/<[^>]*>/g, '')
-    })
+    // If textBody is not provided, strip HTML tags from htmlBody
+    const plainTextBody = textBody || htmlBody.replace(/<[^>]*>/g, '')
 
-    if (error) {
-      console.error('❌ Lỗi gửi email:', error)
-      return false
+    // Configure email parameters
+    const params = {
+      Source: envConfig.fromAddress || 'no-reply@yourdomain.com',
+      Destination: {
+        ToAddresses: [toAddress]
+      },
+      Message: {
+        Subject: {
+          Data: subject,
+          Charset: 'UTF-8'
+        },
+        Body: {
+          Html: {
+            Data: htmlBody,
+            Charset: 'UTF-8'
+          },
+          Text: {
+            Data: plainTextBody,
+            Charset: 'UTF-8'
+          }
+        }
+      }
     }
 
-    console.log('✅ Email gửi thành công:', data?.id)
+    // Send email
+    const command = new SendEmailCommand(params)
+    const response = await sesClient.send(command)
+
+    console.log('✅ Email sent successfully:', response.MessageId)
     return true
   } catch (error) {
-    console.error('❌ Lỗi gửi email:', error)
+    console.error('❌ Error sending email:', error)
     return false
   }
 }
 
-// Template HTML cho mã xác thực
+// HTML template for verification code
 const verificationCodeTemplate = `<html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -159,7 +179,7 @@ const verificationCodeTemplate = `<html lang="en">
   </body>
 </html>`
 
-// Gửi mã xác thực đến email người dùng
+// Send verification code to user's email
 export const sendVerificationCode = async (toAddress: string, code: string): Promise<boolean> => {
   const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
   const subject = 'Your Verification Code'
@@ -169,22 +189,20 @@ export const sendVerificationCode = async (toAddress: string, code: string): Pro
   return await sendEmail(toAddress, subject, htmlBody)
 }
 
-// Server-side check only for code expiration, no socket events needed
-
-// Xử lý hết hạn mã xác thực - Server side only
+// Handle verification code expiration - Server side only
 export const setupVerificationExpiration = (user_id: string, expirationTime: Date) => {
   const timeUntilExpiration = expirationTime.getTime() - Date.now()
 
   if (timeUntilExpiration <= 0) return
 
   setTimeout(async () => {
-    // Kiểm tra nếu người dùng vẫn chưa xác thực
+    // Check if user is still unverified
     const user = await databaseService.users.findOne({
       _id: new ObjectId(user_id)
     })
 
     if (user && user.verify === UserVerifyStatus.Unverified) {
-      // Xóa hoặc vô hiệu hóa mã xác thực
+      // Delete or disable verification code
       await databaseService.users.updateOne(
         { _id: new ObjectId(user_id) },
         {
@@ -200,7 +218,7 @@ export const setupVerificationExpiration = (user_id: string, expirationTime: Dat
   }, timeUntilExpiration)
 }
 
-// Hàm gửi mã đặt lại mật khẩu
+// Send password reset code
 export const sendPasswordResetCode = async (toAddress: string, code: string): Promise<boolean> => {
   const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
   const subject = 'Password Reset Code'
@@ -214,38 +232,32 @@ export const sendPasswordResetCode = async (toAddress: string, code: string): Pr
   return await sendEmail(toAddress, subject, htmlBody)
 }
 
-// Xác minh kết nối Resend
-export const verifyResendConnection = async (): Promise<boolean> => {
+// Verify SES connection
+export const verifySESConnection = async (): Promise<boolean> => {
   try {
-    // Kiểm tra API key bằng cách gửi email đến địa chỉ không tồn tại
-    // Sẽ kích hoạt lỗi nhưng vẫn có thể xác minh kết nối
-    await resend.emails.send({
-      from: 'Acme <onboarding@resend.dev>',
-      to: 'verify@example.com',
-      subject: 'API Connection Test',
-      html: '<p>This is a test email to verify API connectivity.</p>'
+    // We'll verify connection by checking if we can verify an email identity
+    // This is a common SES operation that doesn't actually send an email
+    const command = new VerifyEmailIdentityCommand({
+      EmailAddress: envConfig.fromAddress || 'test@example.com'
     })
-    console.log('✅ Kết nối Resend API thành công')
+
+    await sesClient.send(command)
+    console.log('✅ AWS SES connection successful')
+
     return true
-  } catch (error: any) {
-    // Kiểm tra xem lỗi có phải do API key không hợp lệ
-    if (error?.statusCode === 401) {
-      console.error('❌ API key không hợp lệ. Vui lòng kiểm tra lại.')
+  } catch (error) {
+    // Check if error is due to invalid credentials
+    if (error instanceof Error && error.name === 'CredentialsProviderError') {
+      console.error('❌ Invalid AWS credentials. Please check your accessKeyId and secretAccessKey.')
       return false
     }
 
-    // Nếu lỗi khác (ví dụ: email không hợp lệ) nhưng API key hợp lệ
-    if (error?.statusCode === 422) {
-      console.log('✅ API key hợp lệ, nhưng địa chỉ email thử nghiệm không hợp lệ.')
-      return true
-    }
-
-    console.error('❌ Lỗi kết nối Resend API:', error)
+    console.error('❌ Error connecting to AWS SES:', error)
     return false
   }
 }
 
-// Kiểm tra kết nối khi import module
-verifyResendConnection().catch((err) => {
-  console.error('❌ Lỗi xác minh kết nối Resend:', err)
+// Verify connection when module is imported
+verifySESConnection().catch((err) => {
+  console.error('❌ Error verifying AWS SES connection:', err)
 })
