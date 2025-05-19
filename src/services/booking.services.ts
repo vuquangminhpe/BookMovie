@@ -11,7 +11,7 @@ import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
 import { BOOKING_MESSAGES } from '../constants/messages'
 import { ShowtimeStatus } from '../models/schemas/Showtime.schema'
-
+import QRCode from 'qrcode'
 class BookingService {
   async createBooking(user_id: string, payload: CreateBookingReqBody) {
     const booking_id = new ObjectId()
@@ -356,6 +356,23 @@ class BookingService {
     }
 
     return { booking_id }
+  }
+  async generateTicketQR(ticket_code: string) {
+    try {
+      const qrDataURL = await QRCode.toDataURL(ticket_code, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      })
+
+      return { qr_code: qrDataURL }
+    } catch (error) {
+      console.error('Error generating QR code:', error)
+      throw new Error('Failed to generate QR code')
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import {
   getBookingByIdController,
   getBookingByTicketCodeController,
   getMyBookingsController,
+  getTicketQRController,
   updateBookingStatusController
 } from '../controllers/bookings.controllers'
 import { AccessTokenValidator, verifiedUserValidator } from '../middlewares/users.middlewares'
@@ -47,5 +48,11 @@ bookingsRouter.put(
   updateBookingStatusValidator,
   wrapAsync(updateBookingStatusController)
 )
-
+bookingsRouter.get(
+  '/ticket/:ticket_code/qr',
+  AccessTokenValidator,
+  verifiedUserValidator,
+  ticketCodeValidator,
+  wrapAsync(getTicketQRController)
+)
 export default bookingsRouter

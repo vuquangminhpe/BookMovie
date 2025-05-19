@@ -10,6 +10,12 @@ import Payment from '../models/schemas/Payment.schema'
 
 import { envConfig } from '../constants/config'
 import Movie from '../models/schemas/Movie.shema'
+import Rating from '~/models/schemas/Rating.schema'
+import Feedback from '~/models/schemas/Feedback.schema'
+import Banner from '~/models/schemas/Banner.schema'
+import Coupon from '~/models/schemas/Coupon.schema'
+import CouponUsage from '~/models/schemas/CouponUsage.schema'
+import Favorite from '~/models/schemas/Favorite.schema'
 
 const uri = envConfig.mongodb_url
 const dbName = envConfig.db_name
@@ -80,6 +86,28 @@ class DatabaseService {
 
   get payments(): Collection<Payment> {
     return this.db.collection('payments')
+  }
+  get ratings(): Collection<Rating> {
+    return this.db.collection('ratings')
+  }
+  get feedbacks(): Collection<Feedback> {
+    return this.db.collection('feedbacks')
+  }
+  get banners(): Collection<Banner> {
+    return this.db.collection('banners')
+  }
+  get notifications(): Collection<Notification> {
+    return this.db.collection('notifications')
+  }
+  get coupons(): Collection<Coupon> {
+    return this.db.collection('coupons')
+  }
+
+  get couponUsages(): Collection<CouponUsage> {
+    return this.db.collection('coupon_usages')
+  }
+  get favorites(): Collection<Favorite> {
+    return this.db.collection('favorites')
   }
 }
 

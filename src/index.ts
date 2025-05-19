@@ -9,11 +9,17 @@ import { initFolderImage, initFolderVideo, initFolderVideoHls } from './utils/fi
 import cors, { CorsOptions } from 'cors'
 import { createServer } from 'http'
 import helmet from 'helmet'
-import { envConfig } from './constants/config'
 import cinemaRouter from './routes/cinema.routes'
 import { setupSwaggerDocs } from './Swagger/setupSwaggerDocs'
 import { Server as SocketServer } from 'socket.io'
 import { initVerificationCodeMonitor } from './utils/verification-monitor'
+import adminRouter from './routes/admin.routes'
+import bannersRouter from './routes/banners.routes'
+import notificationsRouter from './routes/notifications.routes'
+import notificationService from './services/notification.services'
+import couponsRouter from './routes/coupons.routes'
+import favoritesRouter from './routes/favorites.routes'
+import recommendationRouter from './routes/recommendation.routes'
 
 config()
 databaseService
@@ -57,12 +63,17 @@ try {
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 setupSwaggerDocs(app)
-
+notificationService.setSocketIO(io)
 app.use('/users', usersRouter)
 app.use('/medias', mediasRouter)
 app.use('/static', staticRouter)
 app.use('/cinema', cinemaRouter)
-
+app.use('/admin', adminRouter)
+app.use('/banners', bannersRouter)
+app.use('/notifications', notificationsRouter)
+app.use('/coupons', couponsRouter)
+app.use('/favorites', favoritesRouter)
+app.use('/recommendations', recommendationRouter)
 app.use(defaultErrorHandler)
 
 httpServer.listen(port, () => {

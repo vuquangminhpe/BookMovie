@@ -10,6 +10,7 @@ interface PaymentType {
   transaction_id?: string
   payment_time?: Date
   status: PaymentStatus
+  admin_note?: string
   created_at?: Date
   updated_at?: Date
 }
@@ -32,6 +33,7 @@ export default class Payment {
   transaction_id: string
   payment_time: Date
   status: PaymentStatus
+  admin_note: string
   created_at: Date
   updated_at: Date
 
@@ -44,6 +46,7 @@ export default class Payment {
     transaction_id,
     payment_time,
     status,
+    admin_note,
     created_at,
     updated_at
   }: PaymentType) {
@@ -56,6 +59,7 @@ export default class Payment {
     this.transaction_id = transaction_id || ''
     this.payment_time = payment_time || date
     this.status = status || PaymentStatus.PENDING
+    this.admin_note = admin_note || ''
     this.created_at = created_at || date
     this.updated_at = updated_at || date
   }

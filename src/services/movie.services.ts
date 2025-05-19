@@ -2,6 +2,7 @@ import { ObjectId } from 'mongodb'
 import databaseService from './database.services'
 import { CreateMovieReqBody, GetMoviesReqQuery, UpdateMovieReqBody } from '../models/request/Movie.request'
 import Movie, { MovieStatus } from '../models/schemas/Movie.shema'
+import feedbackService from './feedback.services'
 
 class MovieService {
   async createMovie(payload: CreateMovieReqBody) {
@@ -116,6 +117,58 @@ class MovieService {
   async deleteMovie(movie_id: string) {
     await databaseService.movies.deleteOne({ _id: new ObjectId(movie_id) })
     return { movie_id }
+  }
+  async getMovieRatings(movie_id: string, page: number = 1, limit: number = 10) {
+    const filter = { movie_id: new ObjectId(movie_id) }
+
+    const skip = (page - 1) * limit
+
+    const totalRatings = await databaseService.ratings.countDocuments(filter)
+
+    const ratings = await databaseService.ratings
+      .find(filter)
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray()
+
+    const enhancedRatings = await Promise.all(
+      ratings.map(async (rating) => {
+        const user = await databaseService.users.findOne(
+          { _id: rating.user_id },
+          { projection: { _id: 1, name: 1, username: 1, avatar: 1 } }
+        )
+
+        return {
+          ...rating,
+          user: user || null
+        }
+      })
+    )
+
+    return {
+      ratings: enhancedRatings,
+      total: totalRatings,
+      page,
+      limit,
+      total_pages: Math.ceil(totalRatings / limit)
+    }
+  }
+  async getMovieFeedbacks(movie_id: string, page: number = 1, limit: number = 10, includeAll: boolean = false) {
+    return feedbackService.getMovieFeedbacks(movie_id, page, limit, !includeAll)
+  }
+  async getFeaturedMovies() {
+    const featuredMovies = await databaseService.movies
+      .find({
+        is_featured: true
+      })
+      .sort({
+        featured_order: 1,
+        created_at: -1
+      })
+      .toArray()
+
+    return featuredMovies
   }
 }
 

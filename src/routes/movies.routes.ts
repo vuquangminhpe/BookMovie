@@ -2,7 +2,10 @@ import { Router } from 'express'
 import {
   createMovieController,
   deleteMovieController,
+  getFeaturedMoviesController,
   getMovieByIdController,
+  getMovieFeedbacksController,
+  getMovieRatingsController,
   getMoviesController,
   updateMovieController
 } from '../controllers/movies.controllers'
@@ -40,5 +43,7 @@ moviesRouter.delete(
   movieIdValidator,
   wrapAsync(deleteMovieController)
 )
-
+moviesRouter.get('/:movie_id/ratings', movieIdValidator, wrapAsync(getMovieRatingsController))
+moviesRouter.get('/:movie_id/feedbacks', movieIdValidator, wrapAsync(getMovieFeedbacksController))
+moviesRouter.get('/featured', wrapAsync(getFeaturedMoviesController))
 export default moviesRouter

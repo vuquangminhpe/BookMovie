@@ -12,6 +12,10 @@ interface MovieType {
   cast: string[]
   poster_url: string
   status: MovieStatus
+  average_rating?: number
+  ratings_count?: number
+  is_featured?: boolean
+  featured_order?: number | null
   created_at?: Date
   updated_at?: Date
 }
@@ -34,6 +38,10 @@ export default class Movie {
   cast: string[]
   poster_url: string
   status: MovieStatus
+  average_rating: number
+  ratings_count: number
+  is_featured?: boolean
+  featured_order: number | null
   created_at: Date
   updated_at: Date
 
@@ -50,6 +58,10 @@ export default class Movie {
     poster_url,
     status,
     created_at,
+    average_rating,
+    ratings_count,
+    is_featured,
+    featured_order,
     updated_at
   }: MovieType) {
     const date = new Date()
@@ -64,6 +76,10 @@ export default class Movie {
     this.cast = cast
     this.poster_url = poster_url
     this.status = status || MovieStatus.COMING_SOON
+    this.average_rating = average_rating || 0
+    this.ratings_count = ratings_count || 0
+    this.is_featured = is_featured || false
+    this.featured_order = featured_order || null
     this.created_at = created_at || date
     this.updated_at = updated_at || date
   }
