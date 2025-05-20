@@ -45,7 +45,11 @@ export const envConfig = {
   smtp_secure: process.env.SMTP_SECURE || 'false',
   smtp_user: process.env.SMTP_USER || 'your-email@gmail.com',
   smtp_pass: process.env.SMTP_PASS || 'your-app-password',
-
+  vnpay_tmn_code: process.env.VNPAY_TMN_CODE,
+  vnpay_hash_secret: process.env.VNPAY_HASH_SECRET,
+  vnpay_url: process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+  vnpay_return_url: process.env.VNPAY_RETURN_URL || `${process.env.CLIENT_URL}/api/payments/vnpay-callback`,
+  vnpay_api_url: process.env.VNPAY_API_URL || 'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction',
   fromAddress: process.env.MAIL_FROM || 'no-reply@yourdomain.com',
   sendgrid_api_key: process.env.SENDGRID_API_KEY || '',
   mongodb_url: process.env.MONGODB_URI as string

@@ -8,9 +8,14 @@ interface PaymentType {
   amount: number
   payment_method: PaymentMethod
   transaction_id?: string
+  order_id?: string
+  bank_code?: string
+  card_type?: string
   payment_time?: Date
   status: PaymentStatus
   admin_note?: string
+  error?: string
+  payment_url?: string
   created_at?: Date
   updated_at?: Date
 }
@@ -21,7 +26,8 @@ export enum PaymentMethod {
   NET_BANKING = 'net_banking',
   UPI = 'upi',
   WALLET = 'wallet',
-  CASH = 'cash'
+  CASH = 'cash',
+  VNPAY = 'vnpay'
 }
 
 export default class Payment {
@@ -31,9 +37,14 @@ export default class Payment {
   amount: number
   payment_method: PaymentMethod
   transaction_id: string
+  order_id: string
+  bank_code: string
+  card_type: string
   payment_time: Date
   status: PaymentStatus
   admin_note: string
+  error: string
+  payment_url: string
   created_at: Date
   updated_at: Date
 
@@ -44,9 +55,14 @@ export default class Payment {
     amount,
     payment_method,
     transaction_id,
+    order_id,
+    bank_code,
+    card_type,
     payment_time,
     status,
     admin_note,
+    error,
+    payment_url,
     created_at,
     updated_at
   }: PaymentType) {
@@ -57,9 +73,14 @@ export default class Payment {
     this.amount = amount
     this.payment_method = payment_method
     this.transaction_id = transaction_id || ''
+    this.order_id = order_id || ''
+    this.bank_code = bank_code || ''
+    this.card_type = card_type || ''
     this.payment_time = payment_time || date
     this.status = status || PaymentStatus.PENDING
     this.admin_note = admin_note || ''
+    this.error = error || ''
+    this.payment_url = payment_url || ''
     this.created_at = created_at || date
     this.updated_at = updated_at || date
   }

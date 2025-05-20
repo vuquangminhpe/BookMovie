@@ -3,7 +3,8 @@ import {
   createPaymentController,
   getMyPaymentsController,
   getPaymentByIdController,
-  updatePaymentStatusController
+  updatePaymentStatusController,
+  vnpayPaymentCallbackController
 } from '../controllers/payment.controllers'
 import { AccessTokenValidator, verifiedUserValidator } from '../middlewares/users.middlewares'
 import {
@@ -23,6 +24,9 @@ paymentsRouter.post(
   createPaymentValidator,
   wrapAsync(createPaymentController)
 )
+
+// VNPay callback route - no auth required as it comes from VNPay
+paymentsRouter.get('/vnpay-callback', wrapAsync(vnpayPaymentCallbackController))
 
 paymentsRouter.get('/my-payments', AccessTokenValidator, verifiedUserValidator, wrapAsync(getMyPaymentsController))
 

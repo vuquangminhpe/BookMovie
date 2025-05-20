@@ -1,9 +1,9 @@
 /**
  * @swagger
- * /cinema/payments:
+ * /payments:
  *   post:
  *     summary: Create a new payment
- *     description: Process payment for a booking
+ *     description: Create a new payment for a booking. Supports VNPay and other payment methods.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
@@ -13,21 +13,23 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [booking_id, payment_method]
+ *             required:
+ *               - booking_id
+ *               - payment_method
  *             properties:
  *               booking_id:
  *                 type: string
- *                 example: "60d21b4667d0d8992e610c89"
+ *                 description: ID of the booking to pay for
  *               payment_method:
  *                 type: string
- *                 enum: [credit_card, debit_card, net_banking, upi, wallet, cash]
- *                 example: "credit_card"
+ *                 enum: [credit_card, debit_card, net_banking, upi, wallet, cash, vnpay]
+ *                 description: Payment method
  *               transaction_id:
  *                 type: string
- *                 example: "TXN12345678"
+ *                 description: Transaction ID for non-VNPay payments (optional)
  *     responses:
  *       200:
- *         description: Payment processed successfully
+ *         description: Payment creation successful
  *         content:
  *           application/json:
  *             schema:
@@ -37,24 +39,97 @@
  *                   type: string
  *                   example: Create payment success
  *                 result:
- *                   type: object
- *                   properties:
- *                     payment_id:
- *                       type: string
- *                       example: "60d21b4667d0d8992e610c90"
+ *                   oneOf:
+ *                     - type: object
+ *                       properties:
+ *                         payment_id:
+ *                           type: string
+ *                           description: ID of the created payment
+ *                     - type: object
+ *                       properties:
+ *                         payment_id:
+ *                           type: string
+ *                           description: ID of the created payment
+ *                         payment_url:
+ *                           type: string
+ *                           description: URL to redirect for VNPay payment
+ *                         order_id:
+ *                           type: string
+ *                           description: VNPay order reference ID
  *       400:
- *         $ref: '#/components/responses/ValidationError'
+ *         description: Invalid input data or booking already paid
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized to make payment for this booking
  *       404:
- *         $ref: '#/components/responses/NotFoundError'
+ *         description: Booking not found
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  *
- * /cinema/payments/my-payments:
+ * /payments/vnpay-callback:
  *   get:
- *     summary: Get user's payments
- *     description: Retrieve a list of all payments made by the authenticated user
+ *     summary: VNPay payment callback
+ *     description: Endpoint for VNPay to redirect after payment completion
+ *     tags: [Payments]
+ *     parameters:
+ *       - in: query
+ *         name: vnp_ResponseCode
+ *         schema:
+ *           type: string
+ *         description: VNPay response code
+ *       - in: query
+ *         name: vnp_TxnRef
+ *         schema:
+ *           type: string
+ *         description: VNPay transaction reference
+ *       - in: query
+ *         name: vnp_Amount
+ *         schema:
+ *           type: string
+ *         description: Payment amount (already multiplied by 100)
+ *       - in: query
+ *         name: vnp_BankCode
+ *         schema:
+ *           type: string
+ *         description: Bank code used for payment
+ *       - in: query
+ *         name: vnp_CardType
+ *         schema:
+ *           type: string
+ *         description: Card type used for payment
+ *       - in: query
+ *         name: vnp_OrderInfo
+ *         schema:
+ *           type: string
+ *         description: Order information
+ *       - in: query
+ *         name: vnp_TransactionNo
+ *         schema:
+ *           type: string
+ *         description: VNPay transaction number
+ *       - in: query
+ *         name: vnp_SecureHash
+ *         schema:
+ *           type: string
+ *         description: Secure hash for verification
+ *       - in: query
+ *         name: booking_id
+ *         schema:
+ *           type: string
+ *         description: ID of the booking being paid for
+ *     responses:
+ *       302:
+ *         description: Redirects to client application with payment result
+ *       400:
+ *         description: Invalid input or missing booking_id
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ * /payments/my-payments:
+ *   get:
+ *     summary: Get user's payment history
+ *     description: Retrieve a list of payments made by the authenticated user
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
@@ -62,55 +137,51 @@
  *       - in: query
  *         name: page
  *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number
+ *           type: string
+ *         description: Page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
- *           type: integer
- *           default: 10
+ *           type: string
  *         description: Number of items per page
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, completed, failed, refunded]
+ *           enum: [PENDING, COMPLETED, FAILED, REFUNDED]
  *         description: Filter by payment status
  *       - in: query
  *         name: payment_method
  *         schema:
  *           type: string
- *           enum: [credit_card, debit_card, net_banking, upi, wallet, cash]
+ *           enum: [credit_card, debit_card, net_banking, upi, wallet, cash, vnpay]
  *         description: Filter by payment method
  *       - in: query
  *         name: sort_by
  *         schema:
  *           type: string
- *           default: payment_time
  *         description: Field to sort by
  *       - in: query
  *         name: sort_order
  *         schema:
  *           type: string
  *           enum: [asc, desc]
- *           default: desc
  *         description: Sort order
  *       - in: query
  *         name: date_from
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter by payment date from
+ *         description: Filter by date range (from)
  *       - in: query
  *         name: date_to
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter by payment date to
+ *         description: Filter by date range (to)
  *     responses:
  *       200:
- *         description: Successful operation
+ *         description: List of payments
  *         content:
  *           application/json:
  *             schema:
@@ -129,96 +200,85 @@
  *                         properties:
  *                           _id:
  *                             type: string
- *                             example: "60d21b4667d0d8992e610c90"
  *                           booking_id:
  *                             type: string
- *                             example: "60d21b4667d0d8992e610c89"
  *                           user_id:
  *                             type: string
- *                             example: "60d21b4667d0d8992e610c80"
  *                           amount:
  *                             type: number
- *                             example: 250
  *                           payment_method:
  *                             type: string
- *                             example: "credit_card"
  *                           transaction_id:
  *                             type: string
- *                             example: "TXN12345678"
+ *                           order_id:
+ *                             type: string
+ *                           bank_code:
+ *                             type: string
+ *                           card_type:
+ *                             type: string
  *                           payment_time:
  *                             type: string
  *                             format: date-time
- *                             example: "2023-07-05T10:35:00.000Z"
  *                           status:
  *                             type: string
- *                             example: "completed"
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *                           updated_at:
+ *                             type: string
+ *                             format: date-time
  *                           booking:
  *                             type: object
  *                             properties:
  *                               _id:
  *                                 type: string
- *                                 example: "60d21b4667d0d8992e610c89"
  *                               ticket_code:
  *                                 type: string
- *                                 example: "ABC12345"
  *                               status:
  *                                 type: string
- *                                 example: "confirmed"
  *                               seats:
- *                                 type: integer
- *                                 example: 2
+ *                                 type: number
  *                               total_amount:
  *                                 type: number
- *                                 example: 250
  *                           movie:
  *                             type: object
  *                             properties:
  *                               _id:
  *                                 type: string
- *                                 example: "60d21b4667d0d8992e610c85"
  *                               title:
  *                                 type: string
- *                                 example: "Avengers: Endgame"
  *                           theater:
  *                             type: object
  *                             properties:
  *                               _id:
  *                                 type: string
- *                                 example: "60d21b4667d0d8992e610c86"
  *                               name:
  *                                 type: string
- *                                 example: "PVR Cinemas"
  *                           showtime:
  *                             type: object
  *                             properties:
  *                               _id:
  *                                 type: string
- *                                 example: "60d21b4667d0d8992e610c87"
  *                               start_time:
  *                                 type: string
  *                                 format: date-time
- *                                 example: "2023-07-05T18:30:00.000Z"
  *                     total:
- *                       type: integer
- *                       example: 5
+ *                       type: number
  *                     page:
- *                       type: integer
- *                       example: 1
+ *                       type: number
  *                     limit:
- *                       type: integer
- *                       example: 10
+ *                       type: number
  *                     total_pages:
- *                       type: integer
- *                       example: 1
+ *                       type: number
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  *
- * /cinema/payments/{payment_id}:
+ * /payments/{payment_id}:
  *   get:
  *     summary: Get payment by ID
- *     description: Retrieve a payment by its ID (must be owner or admin)
+ *     description: Retrieve a specific payment by its ID
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
@@ -231,7 +291,7 @@
  *         description: Payment ID
  *     responses:
  *       200:
- *         description: Successful operation
+ *         description: Payment details
  *         content:
  *           application/json:
  *             schema:
@@ -245,110 +305,90 @@
  *                   properties:
  *                     _id:
  *                       type: string
- *                       example: "60d21b4667d0d8992e610c90"
  *                     booking_id:
  *                       type: string
- *                       example: "60d21b4667d0d8992e610c89"
  *                     user_id:
  *                       type: string
- *                       example: "60d21b4667d0d8992e610c80"
  *                     amount:
  *                       type: number
- *                       example: 250
  *                     payment_method:
  *                       type: string
- *                       example: "credit_card"
  *                     transaction_id:
  *                       type: string
- *                       example: "TXN12345678"
+ *                     order_id:
+ *                       type: string
+ *                     bank_code:
+ *                       type: string
+ *                     card_type:
+ *                       type: string
  *                     payment_time:
  *                       type: string
  *                       format: date-time
- *                       example: "2023-07-05T10:35:00.000Z"
  *                     status:
  *                       type: string
- *                       example: "completed"
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
  *                     booking:
  *                       type: object
  *                       properties:
  *                         _id:
  *                           type: string
- *                           example: "60d21b4667d0d8992e610c89"
  *                         ticket_code:
  *                           type: string
- *                           example: "ABC12345"
  *                         status:
  *                           type: string
- *                           example: "confirmed"
  *                         seats:
  *                           type: array
  *                           items:
  *                             type: object
- *                             properties:
- *                               row:
- *                                 type: string
- *                                 example: "A"
- *                               number:
- *                                 type: integer
- *                                 example: 1
- *                               type:
- *                                 type: string
- *                                 example: "premium"
- *                               price:
- *                                 type: number
- *                                 example: 250
  *                         total_amount:
  *                           type: number
- *                           example: 250
  *                     movie:
  *                       type: object
  *                       properties:
  *                         _id:
  *                           type: string
- *                           example: "60d21b4667d0d8992e610c85"
  *                         title:
  *                           type: string
- *                           example: "Avengers: Endgame"
  *                         poster_url:
  *                           type: string
- *                           example: "https://example.com/poster.jpg"
  *                     theater:
  *                       type: object
  *                       properties:
  *                         _id:
  *                           type: string
- *                           example: "60d21b4667d0d8992e610c86"
  *                         name:
  *                           type: string
- *                           example: "PVR Cinemas"
  *                         location:
  *                           type: string
- *                           example: "City Center Mall"
  *                     showtime:
  *                       type: object
  *                       properties:
  *                         _id:
  *                           type: string
- *                           example: "60d21b4667d0d8992e610c87"
  *                         start_time:
  *                           type: string
  *                           format: date-time
- *                           example: "2023-07-05T18:30:00.000Z"
  *                         end_time:
  *                           type: string
  *                           format: date-time
- *                           example: "2023-07-05T21:30:00.000Z"
+ *       400:
+ *         description: Invalid payment ID
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       404:
- *         $ref: '#/components/responses/NotFoundError'
+ *         description: Payment not found
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  *
- * /cinema/payments/{payment_id}/status:
+ * /payments/{payment_id}/status:
  *   put:
  *     summary: Update payment status
- *     description: Update a payment status (admin only)
+ *     description: Update the status of an existing payment (admin only)
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
@@ -365,15 +405,16 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [status]
+ *             required:
+ *               - status
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [pending, completed, failed, refunded]
- *                 example: "completed"
+ *                 enum: [PENDING, COMPLETED, FAILED, REFUNDED]
+ *                 description: New payment status
  *               transaction_id:
  *                 type: string
- *                 example: "TXN12345678"
+ *                 description: Transaction ID (optional)
  *     responses:
  *       200:
  *         description: Payment status updated successfully
@@ -390,13 +431,14 @@
  *                   properties:
  *                     payment_id:
  *                       type: string
- *                       example: "60d21b4667d0d8992e610c90"
  *       400:
- *         $ref: '#/components/responses/ValidationError'
+ *         description: Invalid input data or payment already completed
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized to update payment status
  *       404:
- *         $ref: '#/components/responses/NotFoundError'
+ *         description: Payment not found
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */

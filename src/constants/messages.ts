@@ -210,6 +210,7 @@ export const BOOKING_MESSAGES = {
 export const PAYMENT_MESSAGES = {
   CREATE_PAYMENT_SUCCESS: 'Create payment success',
   UPDATE_PAYMENT_SUCCESS: 'Update payment success',
+  DELETE_PAYMENT_SUCCESS: 'Delete payment success',
   GET_PAYMENT_SUCCESS: 'Get payment success',
   GET_PAYMENTS_SUCCESS: 'Get payments success',
   PAYMENT_NOT_FOUND: 'Payment not found',
@@ -225,7 +226,15 @@ export const PAYMENT_MESSAGES = {
   PAYMENT_FAILED: 'Payment failed',
   PAYMENT_CANCELLED: 'Payment cancelled',
   BOOKING_ALREADY_PAID: 'Booking is already paid',
-  PAYMENT_AMOUNT_MISMATCH: 'Payment amount does not match booking amount'
+  PAYMENT_AMOUNT_MISMATCH: 'Payment amount does not match booking amount',
+  VNPAY_PAYMENT_SUCCESS: 'VNPay payment initiated successfully',
+  VNPAY_PAYMENT_VERIFICATION_SUCCESS: 'VNPay payment verified successfully',
+  VNPAY_PAYMENT_VERIFICATION_FAILED: 'VNPay payment verification failed',
+  VNPAY_INVALID_SIGNATURE: 'Invalid VNPay signature',
+  VNPAY_INVALID_AMOUNT: 'Invalid payment amount',
+  VNPAY_INVALID_ORDER_ID: 'Invalid order ID',
+  CONFIRM_SUCCESS: 'Confirm payment success',
+  UNKNOW_ERROR: 'Unknown error occurred'
 } as const
 export const RATING_MESSAGES = {
   CREATE_RATING_SUCCESS: 'Create rating success',
