@@ -79,37 +79,37 @@ class UserService {
   private signAccessAndRefreshToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     return Promise.all([this.signAccessToken({ user_id, verify }), this.signRefreshToken({ user_id, verify })])
   }
-  
+
   async verifyRegistrationCode(email: string, code: string) {
     // Kiểm tra code có đúng và còn hạn không
     const isValid = tempRegisterService.verifyCode(email, code)
-    
+
     if (!isValid) {
       throw new ErrorWithStatus({
         message: USERS_MESSAGES.VERIFICATION_CODE_INVALID_OR_EXPIRED,
         status: HTTP_STATUS.BAD_REQUEST
       })
     }
-    
+
     // Lấy dữ liệu đăng ký đã lưu tạm
     const registrationData = tempRegisterService.getVerifiedRegistrationData(email)
-    
+
     if (!registrationData) {
       throw new ErrorWithStatus({
         message: USERS_MESSAGES.VERIFICATION_DATA_NOT_FOUND,
         status: HTTP_STATUS.NOT_FOUND
       })
     }
-    
+
     // Tạo ID người dùng mới
     const user_id = new ObjectId()
-    
+
     // Lưu thông tin người dùng vào database
     await databaseService.users.insertOne(
       new User({
         ...registrationData,
         _id: user_id,
-        role: UserRole.Student,
+        role: UserRole.Customer,
         password: hashPassword(registrationData.password),
         verify: UserVerifyStatus.Verified, // Đánh dấu đã xác thực
         date_of_birth: registrationData.date_of_birth ? new Date(registrationData.date_of_birth) : null,
@@ -117,23 +117,23 @@ class UserService {
         email_verify_code: ''
       })
     )
-    
+
     // Xóa dữ liệu đăng ký tạm thời
     tempRegisterService.removePendingRegistration(email)
-    
+
     // Tạo token cho người dùng
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken({
       user_id: user_id.toString(),
       verify: UserVerifyStatus.Verified
     })
-    
+
     // Lưu refresh token
     await databaseService.refreshToken.insertOne({
       user_id: new ObjectId(user_id),
       token: refresh_token,
       created_at: new Date()
     })
-    
+
     return {
       access_token,
       refresh_token,
@@ -141,22 +141,22 @@ class UserService {
       verify: UserVerifyStatus.Verified
     }
   }
-  
+
   async checkRegistrationStatus(email: string) {
     // Kiểm tra trạng thái đăng ký
     const pendingRegistration = tempRegisterService.getPendingRegistration(email)
-    
+
     if (!pendingRegistration) {
       throw new ErrorWithStatus({
         message: USERS_MESSAGES.VERIFICATION_DATA_NOT_FOUND,
         status: HTTP_STATUS.NOT_FOUND
       })
     }
-    
+
     // Kiểm tra hết hạn
     const isExpired = tempRegisterService.isRegistrationExpired(email)
     const timeRemaining = tempRegisterService.getExpirationTimeRemaining(email)
-    
+
     return {
       email,
       is_expired: isExpired,
@@ -177,7 +177,22 @@ class UserService {
     const verificationCode = generateVerificationCode()
 
     // Lưu thông tin đăng ký vào bộ nhớ tạm thời
-    tempRegisterService.storePendingRegistration(payload.email, payload, verificationCode)
+    tempRegisterService.storePendingRegistration(
+      payload.email,
+      {
+        ...payload,
+        role: UserRole.Customer,
+        address: payload.address || {
+          street: '',
+          city: '',
+          state: '',
+          country: '',
+          zipCode: ''
+        },
+        phone: payload.phone || ''
+      },
+      verificationCode
+    )
 
     // Gửi mã xác thực qua email
     const emailSent = await sendVerificationCode(payload.email, verificationCode)
@@ -289,7 +304,7 @@ class UserService {
         date_of_birth: new Date().toISOString(),
         password,
         confirm_password: password,
-        class: '1'
+        role: UserRole.Customer
       })
       return {
         ...data,

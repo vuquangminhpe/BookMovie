@@ -103,8 +103,8 @@ export const searchUsersByNameController = async (req: Request, res: Response) =
 export const getAllUsersController = async (req: Request, res: Response) => {
   try {
     const { user_id } = req.decode_authorization as TokenPayload
-    console.log(user_id);
-    
+    console.log(user_id)
+
     const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
     const page = parseInt(req.query.page as string) || 1
     const limit = parseInt(req.query.limit as string) || 10
@@ -250,7 +250,9 @@ export const updateMeController = async (req: Request<ParamsDictionary, any, Upd
     'website',
     'username',
     'avatar',
-    'cover_photo'
+    'cover_photo',
+    'address',
+    'phone'
   ])
   const user = await usersService.updateMe(user_id, body)
   res.json({

@@ -15,7 +15,7 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, email, password, confirm_password, date_of_birth, class]
+ *             required: [name, email, password, confirm_password, date_of_birth]
  *             properties:
  *               name:
  *                 type: string
@@ -36,9 +36,27 @@
  *                 type: string
  *                 format: date
  *                 example: "1990-01-01"
- *               class:
+ *               address:
+ *                 type: object
+ *                 properties:
+ *                   street:
+ *                     type: string
+ *                     example: "123 Main St"
+ *                   city:
+ *                     type: string
+ *                     example: "New York"
+ *                   state:
+ *                     type: string
+ *                     example: "NY"
+ *                   country:
+ *                     type: string
+ *                     example: "USA"
+ *                   zipCode:
+ *                     type: string
+ *                     example: "10001"
+ *               phone:
  *                 type: string
- *                 example: "regular"
+ *                 example: "1234567890"
  *     responses:
  *       200:
  *         description: User registered successfully
@@ -432,7 +450,7 @@
  *                 example: "1990-01-01"
  *               bio:
  *                 type: string
- *                 example: "Software developer and movie enthusiast"
+ *                 example: "Movie enthusiast"
  *               location:
  *                 type: string
  *                 example: "New York, USA"
@@ -448,6 +466,27 @@
  *               cover_photo:
  *                 type: string
  *                 example: "https://example.com/cover.jpg"
+ *               address:
+ *                 type: object
+ *                 properties:
+ *                   street:
+ *                     type: string
+ *                     example: "123 Main St"
+ *                   city:
+ *                     type: string
+ *                     example: "New York"
+ *                   state:
+ *                     type: string
+ *                     example: "NY"
+ *                   country:
+ *                     type: string
+ *                     example: "USA"
+ *                   zipCode:
+ *                     type: string
+ *                     example: "10001"
+ *               phone:
+ *                 type: string
+ *                 example: "1234567890"
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -609,4 +648,68 @@
  *         $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
+ *
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           example: "507f1f77bcf86cd799439011"
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "john.doe@example.com"
+ *         name:
+ *           type: string
+ *           example: "John Doe"
+ *         date_of_birth:
+ *           type: string
+ *           format: date
+ *           example: "1990-01-01"
+ *         role:
+ *           type: string
+ *           enum: [customer, staff, admin]
+ *           example: "customer"
+ *         address:
+ *           type: object
+ *           properties:
+ *             street:
+ *               type: string
+ *               example: "123 Main St"
+ *             city:
+ *               type: string
+ *               example: "New York"
+ *             state:
+ *               type: string
+ *               example: "NY"
+ *             country:
+ *               type: string
+ *               example: "USA"
+ *             zipCode:
+ *               type: string
+ *               example: "10001"
+ *         phone:
+ *           type: string
+ *           example: "1234567890"
+ *         username:
+ *           type: string
+ *           example: "johndoe"
+ *         avatar:
+ *           type: string
+ *           example: "https://example.com/avatar.jpg"
+ *         verify:
+ *           type: string
+ *           enum: [unverified, verified]
+ *           example: "verified"
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2024-01-01T00:00:00Z"
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2024-01-01T00:00:00Z"
  */

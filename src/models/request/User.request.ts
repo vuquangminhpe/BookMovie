@@ -1,5 +1,6 @@
 import { JwtPayload } from 'jsonwebtoken'
 import { TokenType, UserVerifyStatus } from '../../constants/enums'
+import { UserRole } from '../schemas/User.schema'
 
 export interface UpdateMeReqBody {
   name?: string
@@ -33,7 +34,15 @@ export interface RegisterReqBody {
   password: string
   confirm_password: string
   date_of_birth: string
-  class: string
+  role: UserRole
+  address?: {
+    street: string
+    city: string
+    state: string
+    country: string
+    zipCode: string
+  }
+  phone?: string
 }
 export interface LogoutReqBody {
   refresh_token: string

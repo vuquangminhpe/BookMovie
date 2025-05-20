@@ -2,8 +2,8 @@ import { ObjectId } from 'mongodb'
 import { UserVerifyStatus } from '../../constants/enums'
 
 export enum UserRole {
-  Student = 'student',
-  Teacher = 'teacher',
+  Customer = 'customer',
+  Staff = 'staff',
   Admin = 'admin'
 }
 
@@ -23,7 +23,14 @@ export default class UserType {
   date_of_birth?: Date | null
   username?: string
   avatar?: string
-  class: string
+  address?: {
+    street: string
+    city: string
+    state: string
+    country: string
+    zipCode: string
+  }
+  phone?: string
 
   constructor(user: UserType) {
     const date = new Date()
@@ -35,12 +42,19 @@ export default class UserType {
     this.email_verify_token = user.email_verify_token || ''
     this.forgot_password_token = user.forgot_password_token || ''
     this.verify = user.verify || UserVerifyStatus.Unverified
-    this.role = user.role || UserRole.Student
+    this.role = user.role || UserRole.Customer
     this.date_of_birth = user.date_of_birth
     this.username = user.username || ''
     this.avatar = user.avatar || ''
     this.name = user.name || ''
-    this.class = user.class || ''
+    this.address = user.address || {
+      street: '',
+      city: '',
+      state: '',
+      country: '',
+      zipCode: ''
+    }
+    this.phone = user.phone || ''
     this.email_verify_code = user.email_verify_code || ''
     this.verify_code_expires_at = user.verify_code_expires_at || null
   }
