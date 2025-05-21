@@ -148,6 +148,12 @@ export const loginValidator = validate(
         trim: true,
         custom: {
           options: async (value, { req }) => {
+            const email_login = await databaseService.users.findOne({
+              email: value
+            })
+            if (email_login === null) {
+              throw new Error(USERS_MESSAGES.EMAIL_NOT_FOUND)
+            }
             const user = await databaseService.users.findOne({
               email: value,
               password: hashPassword(req.body.password)
