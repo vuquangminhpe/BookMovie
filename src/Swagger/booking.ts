@@ -1,6 +1,6 @@
 /**
  * @swagger
- * /booking:
+ * /cinema/bookings:
  *   post:
  *     summary: Create a new booking
  *     description: Create a new movie booking with seat selection
@@ -90,8 +90,8 @@
  *         description: Showtime not found
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
- * 
- * /booking/my-bookings:
+ *
+ * /cinema/bookings/my-bookings:
  *   get:
  *     summary: Get user's bookings
  *     description: Get all bookings for the authenticated user
@@ -156,8 +156,8 @@
  *         $ref: '#/components/responses/UnauthorizedError'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
- * 
- * /booking/{booking_id}:
+ *
+ * /cinema/bookings/{booking_id}:
  *   get:
  *     summary: Get booking details
  *     description: Get detailed information about a specific booking
@@ -220,8 +220,8 @@
  *         description: Booking not found
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
- * 
- * /booking/verify/{ticket_code}:
+ *
+ * /cinema/bookings/verify/{ticket_code}:
  *   get:
  *     summary: Verify ticket by code
  *     description: Verify a booking ticket by its code (for theater staff)
@@ -273,8 +273,8 @@
  *         description: Ticket not found
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
- * 
- * /booking/{booking_id}/status:
+ *
+ * /cinema/bookings/{booking_id}/status:
  *   put:
  *     summary: Update booking status
  *     description: Update the status of a booking (e.g., cancel a booking)
@@ -332,8 +332,8 @@
  *         description: Booking not found
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
- * 
- * /booking/ticket/{ticket_code}/qr:
+ *
+ * /cinema/bookings/ticket/{ticket_code}/qr:
  *   get:
  *     summary: Get ticket QR code
  *     description: Get the QR code for a specific ticket
