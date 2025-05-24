@@ -12,6 +12,9 @@ import bookingService from '../services/booking.services'
 import { TokenPayload } from '../models/request/User.request'
 import HTTP_STATUS from '~/constants/httpStatus'
 import databaseService from '~/services/database.services'
+import { ObjectId } from 'mongodb'
+import { BookingStatus, PaymentStatus } from '~/models/schemas/Booking.schema'
+import bookingExpirationService from '~/services/booking-expiration.services'
 
 export const createBookingController = async (
   req: Request<ParamsDictionary, any, CreateBookingReqBody>,
@@ -129,6 +132,55 @@ export const verifyTicketQRController = async (req: Request, res: Response) => {
       seats: booking.seats,
       booking_time: booking.booking_time,
       verified_at: new Date()
+    }
+  })
+}
+export const getBookingExpirationInfoController = async (req: Request<BookingIdReqParams>, res: Response) => {
+  const { booking_id } = req.params
+  const info = await bookingExpirationService.getBookingExpirationInfo(booking_id)
+
+  if (!info) {
+    return res.status(HTTP_STATUS.NOT_FOUND).json({
+      message: BOOKING_MESSAGES.BOOKING_NOT_FOUND
+    })
+  }
+
+  res.json({
+    message: 'Get booking expiration info success',
+    result: info
+  })
+}
+
+export const extendBookingExpirationController = async (req: Request<BookingIdReqParams>, res: Response) => {
+  const { booking_id } = req.params
+  const { additional_minutes = 5 } = req.body
+  const { user_id } = req.decode_authorization as TokenPayload
+
+  // Verify user owns the booking
+  const booking = await databaseService.bookings.findOne({
+    _id: new ObjectId(booking_id),
+    user_id: new ObjectId(user_id)
+  })
+
+  if (!booking) {
+    return res.status(HTTP_STATUS.NOT_FOUND).json({
+      message: BOOKING_MESSAGES.BOOKING_NOT_FOUND
+    })
+  }
+
+  if (booking.status !== BookingStatus.PENDING || booking.payment_status !== PaymentStatus.PENDING) {
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+      message: 'Cannot extend expiration for completed or cancelled booking'
+    })
+  }
+
+  bookingExpirationService.extendBookingExpiration(booking_id, additional_minutes)
+
+  res.json({
+    message: 'Booking expiration extended successfully',
+    result: {
+      booking_id,
+      extended_minutes: additional_minutes
     }
   })
 }

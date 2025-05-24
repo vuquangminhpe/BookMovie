@@ -297,7 +297,12 @@ export const ADMIN_MESSAGES = {
   MODERATE_FEEDBACK_SUCCESS: 'Moderate feedback success',
   MODERATE_RATING_SUCCESS: 'Moderate rating success',
   ACCESS_DENIED: 'You do not have permission to access this resource',
-  INVALID_ROLE: 'Invalid role'
+  INVALID_ROLE: 'Invalid role',
+  UPDATE_USER_SUCCESS: 'Update user success',
+  DELETE_USER_SUCCESS: 'Delete user success',
+  CANNOT_DELETE_ADMIN: 'Cannot delete admin user',
+  CANNOT_DELETE_SELF: 'Cannot delete your own account',
+  CANNOT_DELETE_USER_WITH_ACTIVE_BOOKINGS: 'Cannot delete user with active bookings'
 } as const
 export const BANNER_MESSAGES = {
   CREATE_BANNER_SUCCESS: 'Create banner success',

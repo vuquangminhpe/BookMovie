@@ -1,6 +1,7 @@
 import { ParamsDictionary } from 'express-serve-static-core'
 import { UserRole } from '../schemas/User.schema'
 import { FeedbackStatus } from '../schemas/Feedback.schema'
+import { UserVerifyStatus } from '~/constants/enums'
 
 // User management
 export interface UpdateUserRoleReqBody {
@@ -44,4 +45,18 @@ export interface ModerateFeedbackReqBody {
 export interface ModerateRatingReqBody {
   is_hidden: boolean
   moderation_note?: string
+}
+export interface UpdateUserReqBody {
+  name?: string
+  email?: string
+  phone?: string
+  address?: {
+    street?: string
+    city?: string
+    state?: string
+    country?: string
+    zipCode?: string
+  }
+  role?: UserRole
+  verify?: UserVerifyStatus
 }

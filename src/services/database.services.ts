@@ -16,6 +16,7 @@ import Banner from '~/models/schemas/Banner.schema'
 import Coupon from '~/models/schemas/Coupon.schema'
 import CouponUsage from '~/models/schemas/CouponUsage.schema'
 import Favorite from '~/models/schemas/Favorite.schema'
+import SeatLock from '~/models/schemas/SeatLock.schema'
 
 const uri = envConfig.mongodb_url
 const dbName = envConfig.db_name
@@ -108,6 +109,9 @@ class DatabaseService {
   }
   get favorites(): Collection<Favorite> {
     return this.db.collection('favorites')
+  }
+  get seatLocks(): Collection<SeatLock> {
+    return this.db.collection('seat_locks')
   }
 }
 

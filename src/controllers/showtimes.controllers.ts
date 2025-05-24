@@ -8,6 +8,7 @@ import {
   UpdateShowtimeReqBody
 } from '../models/request/Showtime.request'
 import showtimeService from '../services/showtime.services'
+import seatLockService from '~/services/seat-lock.services'
 
 export const createShowtimeController = async (
   req: Request<ParamsDictionary, any, CreateShowtimeReqBody>,
@@ -58,5 +59,14 @@ export const deleteShowtimeController = async (req: Request<ShowtimeIdReqParams>
   res.json({
     message: SHOWTIME_MESSAGES.DELETE_SHOWTIME_SUCCESS,
     result
+  })
+}
+export const getShowtimeLockedSeatsController = async (req: Request<ShowtimeIdReqParams>, res: Response) => {
+  const { showtime_id } = req.params
+  const lockedSeats = await seatLockService.getLockedSeats(showtime_id)
+
+  res.json({
+    message: 'Get locked seats successfully',
+    result: lockedSeats
   })
 }

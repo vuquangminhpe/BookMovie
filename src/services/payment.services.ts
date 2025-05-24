@@ -15,6 +15,7 @@ import HTTP_STATUS from '../constants/httpStatus'
 import { BOOKING_MESSAGES, PAYMENT_MESSAGES } from '../constants/messages'
 import { envConfig } from '../constants/config'
 import { Request } from 'express'
+import bookingExpirationService from './booking-expiration.services'
 
 class PaymentService {
   // Sort object for VNPay signature generation
@@ -40,6 +41,8 @@ class PaymentService {
 
   async createPayment(user_id: string, payload: CreatePaymentReqBody) {
     if (payload.payment_method === PaymentMethod.VNPAY) {
+      bookingExpirationService.clearExpirationJob(payload.booking_id)
+
       return this.createVnpayPayment(user_id, payload)
     }
 
@@ -277,6 +280,8 @@ class PaymentService {
       // Verify response code
       if (vnpParams.vnp_ResponseCode !== '00') {
         // Update payment record
+        bookingExpirationService.clearExpirationJob(booking_id)
+
         const payment = await databaseService.payments.findOne({
           order_id: vnpParams.vnp_TxnRef,
           booking_id: new ObjectId(booking_id)

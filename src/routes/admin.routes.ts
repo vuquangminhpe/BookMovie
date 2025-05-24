@@ -5,6 +5,7 @@ import { wrapAsync } from '../utils/handler'
 import {
   adminCreateBannerController,
   adminDeleteBannerController,
+  adminDeleteUserController,
   adminGetAllPaymentsController,
   adminGetBannerByIdController,
   adminGetBannersController,
@@ -12,6 +13,7 @@ import {
   adminGetPaymentStatsController,
   adminUpdateBannerController,
   adminUpdatePaymentStatusController,
+  adminUpdateUserController,
   banUserController,
   getDashboardStatsController,
   getPendingFeedbacksController,
@@ -79,4 +81,6 @@ adminRouter.post('/coupons', wrapAsync(createCouponController))
 adminRouter.put('/coupons/:coupon_id', wrapAsync(updateCouponController))
 adminRouter.delete('/coupons/:coupon_id', wrapAsync(deleteCouponController))
 adminRouter.post('/verify-ticket', wrapAsync(verifyTicketQRController))
+adminRouter.put('/users/:user_id', wrapAsync(adminUpdateUserController))
+adminRouter.delete('/users/:user_id', wrapAsync(adminDeleteUserController))
 export default adminRouter

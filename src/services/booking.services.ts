@@ -12,7 +12,45 @@ import HTTP_STATUS from '../constants/httpStatus'
 import { BOOKING_MESSAGES } from '../constants/messages'
 import { ShowtimeStatus } from '../models/schemas/Showtime.schema'
 import QRCode from 'qrcode'
+import bookingExpirationService from './booking-expiration.services'
+import seatLockService from './seat-lock.services'
 class BookingService {
+  private async autoExpireBooking(booking_id: string) {
+    const booking = await databaseService.bookings.findOne({
+      _id: new ObjectId(booking_id)
+    })
+
+    if (!booking) return
+
+    // Chỉ hủy nếu booking vẫn ở trạng thái PENDING và chưa thanh toán
+    if (booking.status === BookingStatus.PENDING && booking.payment_status === PaymentStatus.PENDING) {
+      // Cập nhật status thành CANCELLED
+      await databaseService.bookings.updateOne(
+        { _id: new ObjectId(booking_id) },
+        {
+          $set: {
+            status: BookingStatus.CANCELLED,
+            payment_status: PaymentStatus.FAILED
+          },
+          $currentDate: { updated_at: true }
+        }
+      )
+
+      // Hoàn lại số ghế available
+      await databaseService.showtimes.updateOne(
+        { _id: booking.showtime_id },
+        {
+          $inc: { available_seats: booking.seats.length },
+          $currentDate: { updated_at: true }
+        }
+      )
+
+      // Unlock seats
+      await seatLockService.unlockSeats(booking.showtime_id.toString(), booking.user_id.toString())
+
+      console.log(`Auto-expired booking ${booking_id} after 5 minutes`)
+    }
+  }
   async createBooking(user_id: string, payload: CreateBookingReqBody) {
     const booking_id = new ObjectId()
 
@@ -44,80 +82,106 @@ class BookingService {
       })
     }
 
-    // Verify seat availability
-    const bookedSeats = await databaseService.bookings
-      .find({
-        showtime_id: new ObjectId(payload.showtime_id),
-        status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] }
-      })
-      .toArray()
-
-    const bookedSeatIdentifiers = bookedSeats.flatMap((booking) =>
-      booking.seats.map((seat) => `${seat.row}-${seat.number}`)
+    // 1. Lock seats trước khi kiểm tra availability
+    const seatLock = await seatLockService.lockSeats(
+      payload.showtime_id,
+      user_id,
+      payload.seats.map((seat) => ({ row: seat.row, number: seat.number }))
     )
 
-    const requestedSeatIdentifiers = payload.seats.map((seat) => `${seat.row}-${seat.number}`)
+    try {
+      // Verify seat availability (kiểm tra booking đã confirm)
+      const bookedSeats = await databaseService.bookings
+        .find({
+          showtime_id: new ObjectId(payload.showtime_id),
+          status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] }
+        })
+        .toArray()
 
-    const conflictingSeat = requestedSeatIdentifiers.find((seatId) => bookedSeatIdentifiers.includes(seatId))
+      const bookedSeatIdentifiers = bookedSeats.flatMap((booking) =>
+        booking.seats.map((seat) => `${seat.row}-${seat.number}`)
+      )
 
-    if (conflictingSeat) {
-      throw new ErrorWithStatus({
-        message: BOOKING_MESSAGES.SEATS_ALREADY_BOOKED,
-        status: HTTP_STATUS.BAD_REQUEST
-      })
-    }
+      const requestedSeatIdentifiers = payload.seats.map((seat) => `${seat.row}-${seat.number}`)
 
-    // Calculate total amount
-    const seatsWithPrice = payload.seats.map((seat) => {
-      let price = showtime.price.regular
+      const conflictingSeat = requestedSeatIdentifiers.find((seatId) => bookedSeatIdentifiers.includes(seatId))
 
-      // Apply different price based on seat type
-      if (seat.type === 'premium' && showtime.price.premium) {
-        price = showtime.price.premium
-      } else if (seat.type === 'recliner' && showtime.price.recliner) {
-        price = showtime.price.recliner
-      } else if (seat.type === 'couple' && showtime.price.couple) {
-        price = showtime.price.couple
+      if (conflictingSeat) {
+        // Unlock seats nếu có conflict
+        await seatLockService.unlockSeats(payload.showtime_id, user_id)
+        throw new ErrorWithStatus({
+          message: BOOKING_MESSAGES.SEATS_ALREADY_BOOKED,
+          status: HTTP_STATUS.BAD_REQUEST
+        })
       }
+
+      // Calculate total amount
+      const seatsWithPrice = payload.seats.map((seat) => {
+        let price = showtime.price.regular
+
+        // Apply different price based on seat type
+        if (seat.type === 'premium' && showtime.price.premium) {
+          price = showtime.price.premium
+        } else if (seat.type === 'recliner' && showtime.price.recliner) {
+          price = showtime.price.recliner
+        } else if (seat.type === 'couple' && showtime.price.couple) {
+          price = showtime.price.couple
+        }
+
+        return {
+          ...seat,
+          price
+        }
+      })
+
+      const totalAmount = seatsWithPrice.reduce((total, seat) => total + seat.price, 0)
+
+      // Create booking
+      const result = await databaseService.bookings.insertOne(
+        new Booking({
+          _id: booking_id,
+          user_id: new ObjectId(user_id),
+          showtime_id: new ObjectId(payload.showtime_id),
+          movie_id: showtime.movie_id,
+          theater_id: showtime.theater_id,
+          screen_id: showtime.screen_id,
+          seats: seatsWithPrice,
+          total_amount: totalAmount,
+          booking_time: new Date(),
+          status: BookingStatus.PENDING,
+          payment_status: PaymentStatus.PENDING
+        })
+      )
+
+      // Update available seats in showtime
+      await databaseService.showtimes.updateOne(
+        { _id: new ObjectId(payload.showtime_id) },
+        {
+          $inc: { available_seats: -payload.seats.length },
+          $currentDate: { updated_at: true }
+        }
+      )
+
+      // 2. Setup auto-cancel booking sau 5 phút
+      setTimeout(
+        async () => {
+          await this.autoExpireBooking(booking_id.toString())
+        },
+        5 * 60 * 1000
+      ) // 5 phút
+
+      // Fetch the booking with complete details
+      const booking = await this.getBookingDetails(booking_id.toString())
 
       return {
-        ...seat,
-        price
+        booking,
+        seat_lock: seatLock
       }
-    })
-
-    const totalAmount = seatsWithPrice.reduce((total, seat) => total + seat.price, 0)
-
-    // Create booking
-    const result = await databaseService.bookings.insertOne(
-      new Booking({
-        _id: booking_id,
-        user_id: new ObjectId(user_id),
-        showtime_id: new ObjectId(payload.showtime_id),
-        movie_id: showtime.movie_id,
-        theater_id: showtime.theater_id,
-        screen_id: showtime.screen_id,
-        seats: seatsWithPrice,
-        total_amount: totalAmount,
-        booking_time: new Date(),
-        status: BookingStatus.PENDING,
-        payment_status: PaymentStatus.PENDING
-      })
-    )
-
-    // Update available seats in showtime
-    await databaseService.showtimes.updateOne(
-      { _id: new ObjectId(payload.showtime_id) },
-      {
-        $inc: { available_seats: -payload.seats.length },
-        $currentDate: { updated_at: true }
-      }
-    )
-
-    // Fetch the booking with complete details
-    const booking = await this.getBookingDetails(booking_id.toString())
-
-    return { booking }
+    } catch (error) {
+      // Unlock seats nếu có lỗi
+      await seatLockService.unlockSeats(payload.showtime_id, user_id)
+      throw error
+    }
   }
 
   async getBookings(user_id: string, query: GetBookingsReqQuery) {

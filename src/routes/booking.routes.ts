@@ -1,8 +1,10 @@
 import { Router } from 'express'
 import {
   createBookingController,
+  extendBookingExpirationController,
   getBookingByIdController,
   getBookingByTicketCodeController,
+  getBookingExpirationInfoController,
   getMyBookingsController,
   getTicketQRController,
   updateBookingStatusController
@@ -54,5 +56,20 @@ bookingsRouter.get(
   verifiedUserValidator,
   ticketCodeValidator,
   wrapAsync(getTicketQRController)
+)
+bookingsRouter.get(
+  '/:booking_id/expiration',
+  AccessTokenValidator,
+  verifiedUserValidator,
+  bookingIdValidator,
+  wrapAsync(getBookingExpirationInfoController)
+)
+
+bookingsRouter.post(
+  '/:booking_id/extend',
+  AccessTokenValidator,
+  verifiedUserValidator,
+  bookingIdValidator,
+  wrapAsync(extendBookingExpirationController)
 )
 export default bookingsRouter

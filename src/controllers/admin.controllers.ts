@@ -8,7 +8,8 @@ import {
   GetDashboardStatsReqQuery,
   FeatureMovieReqBody,
   ModerateFeedbackReqBody,
-  ModerateRatingReqBody
+  ModerateRatingReqBody,
+  UpdateUserReqBody
 } from '../models/request/Admin.request'
 import adminService from '../services/admin.services'
 import { TokenPayload } from '../models/request/User.request'
@@ -648,5 +649,29 @@ export const adminGetPaymentStatsController = async (req: Request, res: Response
       payment_status: paymentStatusBreakdown,
       payment_trends: formattedPaymentTrends
     }
+  })
+}
+export const adminUpdateUserController = async (
+  req: Request<UserIdReqParams, any, UpdateUserReqBody>,
+  res: Response
+) => {
+  const { user_id } = req.params
+  const { user_id: admin_id } = req.decode_authorization as TokenPayload
+
+  const result = await adminService.updateUser(user_id, admin_id, req.body)
+  res.json({
+    message: ADMIN_MESSAGES.UPDATE_USER_SUCCESS,
+    result
+  })
+}
+
+export const adminDeleteUserController = async (req: Request<UserIdReqParams>, res: Response) => {
+  const { user_id } = req.params
+  const { user_id: admin_id } = req.decode_authorization as TokenPayload
+
+  const result = await adminService.deleteUser(user_id, admin_id)
+  res.json({
+    message: ADMIN_MESSAGES.DELETE_USER_SUCCESS,
+    result
   })
 }

@@ -508,4 +508,260 @@
  *         $ref: '#/components/responses/NotFoundError'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
+ *
+ */
+/**
+ * @swagger
+ * /cinema/showtimes/{showtime_id}/locked-seats:
+ *   get:
+ *     summary: Get locked seats for a showtime
+ *     description: Get list of currently locked seats for a specific showtime (temporarily reserved by other users)
+ *     tags: [Showtimes]
+ *     parameters:
+ *       - in: path
+ *         name: showtime_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Showtime ID
+ *     responses:
+ *       200:
+ *         description: Locked seats retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get locked seats successfully
+ *                 result:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       row:
+ *                         type: string
+ *                         example: "A"
+ *                         description: Seat row
+ *                       number:
+ *                         type: integer
+ *                         example: 5
+ *                         description: Seat number
+ *                       expires_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T14:35:00.000Z"
+ *                         description: When the seat lock expires
+ *       400:
+ *         description: Invalid showtime ID
+ *       404:
+ *         description: Showtime not found
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /cinema/bookings/{booking_id}/expiration:
+ *   get:
+ *     summary: Get booking expiration information
+ *     description: Get expiration details for a booking including time remaining before auto-cancellation
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: booking_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     responses:
+ *       200:
+ *         description: Booking expiration info retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get booking expiration info success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     booking_id:
+ *                       type: string
+ *                       example: "60d21b4667d0d8992e610c87"
+ *                     booking_time:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T14:30:00.000Z"
+ *                       description: When the booking was created
+ *                     expiration_time:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T14:35:00.000Z"
+ *                       description: When the booking will expire (5 minutes after creation)
+ *                     time_remaining_ms:
+ *                       type: integer
+ *                       example: 240000
+ *                       description: Time remaining in milliseconds
+ *                     time_remaining_seconds:
+ *                       type: integer
+ *                       example: 240
+ *                       description: Time remaining in seconds
+ *                     is_expired:
+ *                       type: boolean
+ *                       example: false
+ *                       description: Whether the booking has expired
+ *                     status:
+ *                       type: string
+ *                       enum: [pending, confirmed, cancelled, completed]
+ *                       example: "pending"
+ *                       description: Current booking status
+ *                     payment_status:
+ *                       type: string
+ *                       enum: [pending, completed, failed, refunded]
+ *                       example: "pending"
+ *                       description: Current payment status
+ *       400:
+ *         description: Invalid booking ID
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         description: Booking not found
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ * /cinema/bookings/{booking_id}/extend:
+ *   post:
+ *     summary: Extend booking expiration time
+ *     description: Extend the expiration time for a pending booking (useful when user is in payment process)
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: booking_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               additional_minutes:
+ *                 type: integer
+ *                 default: 5
+ *                 minimum: 1
+ *                 maximum: 15
+ *                 example: 5
+ *                 description: Additional minutes to extend the booking (1-15 minutes)
+ *     responses:
+ *       200:
+ *         description: Booking expiration extended successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Booking expiration extended successfully
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     booking_id:
+ *                       type: string
+ *                       example: "60d21b4667d0d8992e610c87"
+ *                     extended_minutes:
+ *                       type: integer
+ *                       example: 5
+ *                       description: Number of minutes the booking was extended by
+ *       400:
+ *         description: Invalid booking ID or cannot extend expiration for completed/cancelled booking
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized to extend this booking
+ *       404:
+ *         description: Booking not found
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     SeatLock:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Lock ID
+ *         showtime_id:
+ *           type: string
+ *           description: Showtime ID
+ *         user_id:
+ *           type: string
+ *           description: User ID who locked the seats
+ *         seats:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               row:
+ *                 type: string
+ *                 example: "A"
+ *               number:
+ *                 type: integer
+ *                 example: 5
+ *           description: Locked seats
+ *         expires_at:
+ *           type: string
+ *           format: date-time
+ *           description: When the lock expires (5 minutes from creation)
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: When the lock was created
+ *
+ *     BookingExpiration:
+ *       type: object
+ *       properties:
+ *         booking_id:
+ *           type: string
+ *           description: Booking ID
+ *         booking_time:
+ *           type: string
+ *           format: date-time
+ *           description: When the booking was created
+ *         expiration_time:
+ *           type: string
+ *           format: date-time
+ *           description: When the booking will expire
+ *         time_remaining_ms:
+ *           type: integer
+ *           description: Time remaining in milliseconds
+ *         time_remaining_seconds:
+ *           type: integer
+ *           description: Time remaining in seconds
+ *         is_expired:
+ *           type: boolean
+ *           description: Whether the booking has expired
+ *         status:
+ *           type: string
+ *           enum: [pending, confirmed, cancelled, completed]
+ *           description: Current booking status
+ *         payment_status:
+ *           type: string
+ *           enum: [pending, completed, failed, refunded]
+ *           description: Current payment status
  */

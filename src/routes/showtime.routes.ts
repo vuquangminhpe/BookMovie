@@ -3,6 +3,7 @@ import {
   createShowtimeController,
   deleteShowtimeController,
   getShowtimeByIdController,
+  getShowtimeLockedSeatsController,
   getShowtimesController,
   updateShowtimeController
 } from '../controllers/showtimes.controllers'
@@ -44,5 +45,6 @@ showtimesRouter.delete(
   showtimeIdValidator,
   wrapAsync(deleteShowtimeController)
 )
+showtimesRouter.get('/:showtime_id/locked-seats', showtimeIdValidator, wrapAsync(getShowtimeLockedSeatsController))
 
 export default showtimesRouter

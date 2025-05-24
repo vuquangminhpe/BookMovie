@@ -4,7 +4,8 @@ import {
   GetUsersReqQuery,
   UpdateUserRoleReqBody,
   GetDashboardStatsReqQuery,
-  FeatureMovieReqBody
+  FeatureMovieReqBody,
+  UpdateUserReqBody
 } from '../models/request/Admin.request'
 import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
@@ -643,6 +644,162 @@ class AdminService {
       limit,
       total_pages: Math.ceil(totalRatings / limit)
     }
+  }
+  async updateUser(user_id: string, admin_id: string, payload: UpdateUserReqBody) {
+    if (!ObjectId.isValid(user_id)) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGES.INVALID_USER_ID,
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    // Get target user
+    const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
+    if (!user) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Check if trying to update another admin (except self)
+    if (user.role === UserRole.Admin && user_id !== admin_id) {
+      throw new ErrorWithStatus({
+        message: ADMIN_MESSAGES.CANNOT_UPDATE_ADMIN_ROLE,
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
+    // If updating email, check if new email already exists
+    if (payload.email && payload.email !== user.email) {
+      const existingUser = await databaseService.users.findOne({
+        email: payload.email,
+        _id: { $ne: new ObjectId(user_id) }
+      })
+      if (existingUser) {
+        throw new ErrorWithStatus({
+          message: USERS_MESSAGES.EMAIL_ALREADY_EXISTS,
+          status: HTTP_STATUS.BAD_REQUEST
+        })
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = {}
+
+    if (payload.name) updateData.name = payload.name
+    if (payload.email) updateData.email = payload.email
+    if (payload.phone) updateData.phone = payload.phone
+    if (payload.address) updateData.address = { ...user.address, ...payload.address }
+    if (payload.role && Object.values(UserRole).includes(payload.role)) {
+      updateData.role = payload.role
+    }
+    if (payload.verify !== undefined && Object.values(UserVerifyStatus).includes(payload.verify)) {
+      updateData.verify = payload.verify
+    }
+
+    // Update user
+    await databaseService.users.updateOne(
+      { _id: new ObjectId(user_id) },
+      {
+        $set: updateData,
+        $currentDate: { updated_at: true }
+      }
+    )
+
+    // Return updated user info (without sensitive data)
+    const updatedUser = await databaseService.users.findOne(
+      { _id: new ObjectId(user_id) },
+      {
+        projection: {
+          password: 0,
+          forgot_password_token: 0,
+          email_verify_token: 0,
+          email_verify_code: 0
+        }
+      }
+    )
+
+    return updatedUser
+  }
+
+  async deleteUser(user_id: string, admin_id: string) {
+    if (!ObjectId.isValid(user_id)) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGES.INVALID_USER_ID,
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    // Cannot delete self
+    if (user_id === admin_id) {
+      throw new ErrorWithStatus({
+        message: ADMIN_MESSAGES.CANNOT_DELETE_SELF,
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
+    // Get target user
+    const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
+    if (!user) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Cannot delete another admin
+    if (user.role === UserRole.Admin) {
+      throw new ErrorWithStatus({
+        message: ADMIN_MESSAGES.CANNOT_DELETE_ADMIN,
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
+    // Check if user has active bookings
+    const activeBookings = await databaseService.bookings.countDocuments({
+      user_id: new ObjectId(user_id),
+      status: { $in: [BookingStatus.CONFIRMED, BookingStatus.PENDING] }
+    })
+
+    if (activeBookings > 0) {
+      throw new ErrorWithStatus({
+        message: ADMIN_MESSAGES.CANNOT_DELETE_USER_WITH_ACTIVE_BOOKINGS,
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    // Delete user and related data
+    await Promise.all([
+      // Delete user
+      databaseService.users.deleteOne({ _id: new ObjectId(user_id) }),
+
+      // Delete user's ratings
+      databaseService.ratings.deleteMany({ user_id: new ObjectId(user_id) }),
+
+      // Delete user's feedback
+      databaseService.feedbacks.deleteMany({ user_id: new ObjectId(user_id) }),
+
+      // Delete user's notifications
+      databaseService.notifications.deleteMany({ user_id: new ObjectId(user_id) }),
+
+      // Delete user's favorites
+      databaseService.favorites.deleteMany({ user_id: new ObjectId(user_id) }),
+
+      // Update completed/cancelled bookings to mark user as deleted
+      databaseService.bookings.updateMany(
+        {
+          user_id: new ObjectId(user_id),
+          status: { $in: [BookingStatus.COMPLETED, BookingStatus.CANCELLED] }
+        },
+        {
+          $set: { user_deleted: true },
+          $currentDate: { updated_at: true }
+        }
+      )
+    ])
+
+    return { user_id, deleted: true }
   }
 }
 

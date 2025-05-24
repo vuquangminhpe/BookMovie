@@ -20,19 +20,23 @@ import notificationService from './services/notification.services'
 import couponsRouter from './routes/coupons.routes'
 import favoritesRouter from './routes/favorites.routes'
 import recommendationRouter from './routes/recommendation.routes'
+import bookingExpirationService from './services/booking-expiration.services'
+import { setupCleanupJobs } from './utils/cleanup'
 
 config()
 databaseService
   .connect()
-  .then(() => {})
+  .then(async () => {
+    await bookingExpirationService.recoverPendingBookings()
+  })
   .catch((error) => {
     console.error('Failed to connect to MongoDB:', error)
   })
 
 const app = express()
 const httpServer = createServer(app)
-const port = process.env.PORT || 3002
-
+const port = 5001
+setupCleanupJobs()
 // Set up Socket.io for server-side monitoring only
 const io = new SocketServer(httpServer, {
   cors: {
@@ -75,7 +79,17 @@ app.use('/coupons', couponsRouter)
 app.use('/favorites', favoritesRouter)
 app.use('/recommendations', recommendationRouter)
 app.use(defaultErrorHandler)
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, clearing booking expiration jobs...')
+  bookingExpirationService.clearAllJobs()
+  process.exit(0)
+})
 
+process.on('SIGINT', () => {
+  console.log('SIGINT received, clearing booking expiration jobs...')
+  bookingExpirationService.clearAllJobs()
+  process.exit(0)
+})
 httpServer.listen(port, () => {
   console.log(`Server listening on port ${port}`)
   console.log(`Swagger documentation available at http://localhost:${port}/api-docs`)
