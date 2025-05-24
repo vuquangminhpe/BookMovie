@@ -179,6 +179,7 @@
     "natural-compare": "^1.4.0",
     "negotiator": "^0.6.3",
     "node-cache": "^5.1.2",
+    "node-cron": "^4.0.7",
     "node-fetch": "2",
     "node-mailjet": "^6.0.8",
     "nodemailer": "^7.0.3",
