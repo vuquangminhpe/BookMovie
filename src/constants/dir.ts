@@ -2,17 +2,13 @@ import path from 'path'
 import os from 'os'
 
 const isProduction = process.env.NODE_ENV === 'production'
+const isRender = process.env.RENDER === 'true' || process.env.RENDER_SERVICE_ID
 
 const getBaseDir = () => {
-  if (isProduction) {
-    try {
-      const cwd = process.cwd()
-      // Kiểm tra xem có thể tạo thư mục trong cwd không
-      return cwd
-    } catch (error) {
-      console.warn('Cannot use process.cwd(), falling back to system temp directory')
-      return os.tmpdir()
-    }
+  if (isRender || isProduction) {
+    // Render.com chỉ cho phép ghi vào /tmp
+    console.log('🚀 Detected Render.com environment, using /tmp directory')
+    return '/tmp'
   }
 
   return process.cwd()
@@ -20,14 +16,33 @@ const getBaseDir = () => {
 
 const BASE_DIR = getBaseDir()
 
+// Trên Render.com, tất cả đều phải dùng /tmp
 export const UPLOAD_TEMP_DIR = path.resolve(BASE_DIR, 'uploads/temp')
-export const UPLOAD_IMAGES_DIR = path.resolve(BASE_DIR, 'uploads/Images')
+export const UPLOAD_IMAGES_DIR = path.resolve(BASE_DIR, 'uploads/images')
 export const UPLOAD_VIDEO_DIR = path.resolve(BASE_DIR, 'uploads/video')
 export const UPLOAD_VIDEO_HLS_DIR = path.resolve(BASE_DIR, 'uploads/video-hls')
 
-// Log đường dẫn để debug
-console.log('Upload directories:')
-console.log('- TEMP:', UPLOAD_TEMP_DIR)
-console.log('- IMAGES:', UPLOAD_IMAGES_DIR)
-console.log('- VIDEO:', UPLOAD_VIDEO_DIR)
-console.log('- VIDEO_HLS:', UPLOAD_VIDEO_HLS_DIR)
+// Log để debug
+console.log('📁 Upload Configuration:')
+console.log(`   Environment: ${process.env.NODE_ENV}`)
+console.log(`   Platform: ${os.platform()}`)
+console.log(`   Base Directory: ${BASE_DIR}`)
+console.log(`   Render Detected: ${isRender ? 'Yes' : 'No'}`)
+console.log(`   Temp Dir: ${UPLOAD_TEMP_DIR}`)
+
+// Kiểm tra quyền ghi ngay khi import
+try {
+  const fs = require('fs')
+  if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
+    fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true })
+    console.log('✅ Created upload directories successfully')
+  }
+
+  // Test write permission
+  const testFile = path.join(UPLOAD_TEMP_DIR, 'test-' + Date.now())
+  fs.writeFileSync(testFile, 'test')
+  fs.unlinkSync(testFile)
+  console.log('✅ Write permissions confirmed')
+} catch (error) {
+  console.error('❌ Upload directory setup failed:', error)
+}
