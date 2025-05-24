@@ -18,11 +18,13 @@ import databaseService from './database.services'
 import VideoStatus from '../models/schemas/VideoStatus.schema'
 import { uploadFileS3 } from '../utils/s3'
 import { CompleteMultipartUploadCommandOutput } from '@aws-sdk/client-s3'
+
 let mime: any
 ;(async () => {
   const mimeModule = await import('mime')
   mime = mimeModule
 })()
+
 class Queue {
   items: string[]
   encoding: boolean
@@ -30,6 +32,7 @@ class Queue {
     this.items = []
     this.encoding = false
   }
+
   async enqueue(item: string): Promise<string> {
     return new Promise((resolve, reject) => {
       this.items.push(item)
@@ -135,29 +138,81 @@ class Queue {
 }
 
 const queue = new Queue()
+
 class MediaService {
   async uploadImage(req: Request) {
-    const files = await handleUploadImage(req)
-    const result = await Promise.all(
-      files.map(async (file) => {
-        const newName = getNameFromFullname(file.newFilename)
-        const newFullFileName = `${newName}.jpg`
-        const newPath = path.resolve(UPLOAD_IMAGES_DIR, newFullFileName)
-        await sharp(file.filepath).jpeg().toFile(newPath)
-        const s3Result = await uploadFileS3({
-          filename: 'Images/' + newFullFileName,
-          filePath: newPath,
-          contentType: mime.default.getType(newFullFileName) as string
+    try {
+      const files = await handleUploadImage(req)
+
+      const result = await Promise.all(
+        files.map(async (file) => {
+          try {
+            // Kiểm tra file có tồn tại không
+            if (!fs.existsSync(file.filepath)) {
+              throw new Error(`Uploaded file not found: ${file.filepath}`)
+            }
+
+            const newName = getNameFromFullname(file.newFilename)
+            const newFullFileName = `${newName}.jpg`
+            const newPath = path.resolve(UPLOAD_IMAGES_DIR, newFullFileName)
+
+            // Đảm bảo thư mục images tồn tại
+            if (!fs.existsSync(UPLOAD_IMAGES_DIR)) {
+              fs.mkdirSync(UPLOAD_IMAGES_DIR, { recursive: true })
+            }
+
+            // Xử lý ảnh với sharp
+            try {
+              await sharp(file.filepath).jpeg().toFile(newPath)
+            } catch (sharpError) {
+              console.error('Sharp processing error:', sharpError)
+              // Fallback: copy file directly nếu sharp fail
+              await fs.promises.copyFile(file.filepath, newPath)
+            }
+
+            // Upload lên S3
+            const s3Result = await uploadFileS3({
+              filename: 'Images/' + newFullFileName,
+              filePath: newPath,
+              contentType: mime.default.getType(newFullFileName) as string
+            })
+
+            // Cleanup files
+            try {
+              await Promise.all([
+                fsPromise.unlink(file.filepath).catch((err) => console.warn('Failed to delete temp file:', err)),
+                fsPromise.unlink(newPath).catch((err) => console.warn('Failed to delete processed file:', err))
+              ])
+            } catch (cleanupError) {
+              console.warn('Cleanup error:', cleanupError)
+            }
+
+            return {
+              url: (s3Result as CompleteMultipartUploadCommandOutput).Location,
+              type: MediaType.Image
+            }
+          } catch (fileError) {
+            console.error('Error processing file:', file.filepath, fileError)
+            // Cleanup file nếu còn tồn tại
+            try {
+              if (fs.existsSync(file.filepath)) {
+                await fsPromise.unlink(file.filepath)
+              }
+            } catch (cleanupError) {
+              console.warn('Failed to cleanup failed file:', cleanupError)
+            }
+            throw fileError
+          }
         })
-        await Promise.all([fsPromise.unlink(file.filepath), fsPromise.unlink(newPath)])
-        return {
-          url: (s3Result as CompleteMultipartUploadCommandOutput).Location,
-          type: MediaType.Image
-        }
-      })
-    )
-    return result
+      )
+
+      return result
+    } catch (error) {
+      console.error('Upload image service error:', error)
+      throw error
+    }
   }
+
   async uploadVideo(req: Request) {
     const files = await handleUploadVideo(req)
     const result = await Promise.all(
@@ -174,16 +229,11 @@ class MediaService {
           url: (s3Result as CompleteMultipartUploadCommandOutput).Location,
           type: MediaType.Video
         }
-        // return {
-        //   url: isProduction
-        //     ? `${envConfig.host}/static/video-stream/${file.newFilename}.mp4`
-        //     : `http://localhost:${envConfig.port}/static/video-stream/${file.newFilename}.mp4`,
-        //   type: MediaType.Video
-        // }
       })
     )
     return result
   }
+
   async uploadVideoHLS(req: Request) {
     const files = await handleUploadVideoHLS(req)
 

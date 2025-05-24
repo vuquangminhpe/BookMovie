@@ -5,7 +5,7 @@ import { defaultErrorHandler } from './middlewares/error.middlewares'
 import mediasRouter from './routes/medias.routes'
 import { config } from 'dotenv'
 import staticRouter from './routes/static.routes'
-import { initFolderImage, initFolderVideo, initFolderVideoHls } from './utils/file'
+import { initFolderImage, initFolderTemp, initFolderVideo, initFolderVideoHls } from './utils/file'
 import cors, { CorsOptions } from 'cors'
 import { createServer } from 'http'
 import helmet from 'helmet'
@@ -57,6 +57,7 @@ const corsOptions: CorsOptions = {
 app.use(cors(corsOptions))
 
 try {
+  initFolderTemp()
   initFolderImage()
   initFolderVideo()
   initFolderVideoHls()

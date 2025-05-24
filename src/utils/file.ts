@@ -9,6 +9,16 @@ let nanoid: any
   const module = await import('nanoid')
   nanoid = module.nanoid
 })()
+
+export const initFolderTemp = () => {
+  if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
+    fs.mkdirSync(UPLOAD_TEMP_DIR, {
+      recursive: true
+    })
+    console.log('Created temp directory:', UPLOAD_TEMP_DIR)
+  }
+}
+
 export const initFolderImage = () => {
   if (!fs.existsSync(UPLOAD_IMAGES_DIR)) {
     fs.mkdirSync(UPLOAD_IMAGES_DIR, {
@@ -24,6 +34,7 @@ export const initFolderVideo = () => {
     })
   }
 }
+
 export const initFolderVideoHls = () => {
   if (!fs.existsSync(UPLOAD_VIDEO_HLS_DIR)) {
     fs.mkdirSync(UPLOAD_VIDEO_HLS_DIR, {
@@ -33,6 +44,9 @@ export const initFolderVideoHls = () => {
 }
 
 export const handleUploadImage = async (req: Request) => {
+  // Đảm bảo thư mục temp tồn tại trước khi upload
+  initFolderTemp()
+
   const form = formidable({
     uploadDir: UPLOAD_TEMP_DIR,
     maxFiles: 10,
@@ -56,7 +70,16 @@ export const handleUploadImage = async (req: Request) => {
       if (!Boolean(files.image)) {
         return reject(new Error('File is empty'))
       }
-      resolve(files.image as File[])
+
+      // Kiểm tra file có tồn tại không trước khi trả về
+      const imageFiles = files.image as File[]
+      for (const file of imageFiles) {
+        if (!fs.existsSync(file.filepath)) {
+          return reject(new Error(`Uploaded file not found: ${file.filepath}`))
+        }
+      }
+
+      resolve(imageFiles)
     })
   })
 }
@@ -72,12 +95,13 @@ export const getNameFromFullname = (fullname: string) => {
 export const handleUploadVideo = async (req: Request) => {
   const idName = nanoid()
   const folderPath = path.resolve(UPLOAD_VIDEO_DIR, idName)
-  fs.mkdirSync(folderPath)
+  fs.mkdirSync(folderPath, { recursive: true })
+
   const form = formidable({
     uploadDir: folderPath,
     maxFiles: 1,
     keepExtensions: true,
-    maxFileSize: 50 * 1024 * 1024, // 300KB
+    maxFileSize: 50 * 1024 * 1024, // 50MB
     filter: function ({ name, originalFilename, mimetype }: Part) {
       const valid = name === 'video' && Boolean(mimetype?.includes('mp4') || mimetype?.includes('quicktime'))
       if (!valid) {
@@ -106,12 +130,13 @@ export const handleUploadVideo = async (req: Request) => {
 export const handleUploadVideoHLS = async (req: Request) => {
   const idName = nanoid()
   const folderPath = path.resolve(UPLOAD_VIDEO_HLS_DIR, idName)
-  fs.mkdirSync(folderPath)
+  fs.mkdirSync(folderPath, { recursive: true })
+
   const form = formidable({
     uploadDir: folderPath,
     maxFiles: 1,
     keepExtensions: true,
-    maxFileSize: 50 * 1024 * 1024, // 300KB
+    maxFileSize: 50 * 1024 * 1024, // 50MB
     filter: function ({ name, originalFilename, mimetype }: Part) {
       const valid = name === 'video' && Boolean(mimetype?.includes('mp4') || mimetype?.includes('quicktime'))
       if (!valid) {
