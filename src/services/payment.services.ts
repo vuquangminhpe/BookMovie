@@ -119,7 +119,7 @@ class PaymentService {
     }
 
     // Create new payment
-    const result = await databaseService.payments.insertOne(
+    await databaseService.payments.insertOne(
       new Payment({
         _id: payment_id,
         booking_id: new ObjectId(payload.booking_id),
@@ -177,7 +177,7 @@ class PaymentService {
 
     process.env.TZ = 'Asia/Ho_Chi_Minh'
     const date = new Date()
-    const amount = booking.total_amount
+    const amount = booking.total_amount * 100
     const orderId = moment(date).format('DDHHmmss')
     const payment_id = new ObjectId()
 
