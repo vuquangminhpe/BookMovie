@@ -467,7 +467,7 @@ const options: swaggerJsdoc.Options = {
             },
             name: {
               type: 'string',
-              description: 'User name'
+              description: 'User full name'
             },
             email: {
               type: 'string',
@@ -480,7 +480,7 @@ const options: swaggerJsdoc.Options = {
             },
             role: {
               type: 'string',
-              enum: ['student', 'teacher', 'admin'],
+              enum: ['customer', 'staff', 'admin'],
               description: 'User role'
             },
             verify: {
@@ -488,9 +488,60 @@ const options: swaggerJsdoc.Options = {
               enum: [0, 1, 2],
               description: 'Verification status: 0=unverified, 1=verified, 2=banned'
             },
+            date_of_birth: {
+              type: 'string',
+              format: 'date',
+              description: 'Date of birth'
+            },
+            phone: {
+              type: 'string',
+              description: 'Phone number'
+            },
+            address: {
+              type: 'object',
+              properties: {
+                street: {
+                  type: 'string',
+                  description: 'Street address'
+                },
+                city: {
+                  type: 'string',
+                  description: 'City'
+                },
+                state: {
+                  type: 'string',
+                  description: 'State'
+                },
+                country: {
+                  type: 'string',
+                  description: 'Country'
+                },
+                zipCode: {
+                  type: 'string',
+                  description: 'ZIP code'
+                }
+              },
+              description: 'User address'
+            },
             avatar: {
               type: 'string',
-              description: 'User avatar URL'
+              description: 'Avatar URL'
+            },
+            cover_photo: {
+              type: 'string',
+              description: 'Cover photo URL'
+            },
+            bio: {
+              type: 'string',
+              description: 'User bio'
+            },
+            location: {
+              type: 'string',
+              description: 'Location'
+            },
+            website: {
+              type: 'string',
+              description: 'Website URL'
             },
             created_at: {
               type: 'string',
@@ -504,16 +555,436 @@ const options: swaggerJsdoc.Options = {
             }
           }
         },
-        Error: {
+        Banner: {
           type: 'object',
           properties: {
+            _id: {
+              type: 'string',
+              description: 'Banner ID'
+            },
+            title: {
+              type: 'string',
+              description: 'Banner title'
+            },
+            image_url: {
+              type: 'string',
+              description: 'Banner image URL'
+            },
+            link_url: {
+              type: 'string',
+              description: 'Banner link URL'
+            },
+            description: {
+              type: 'string',
+              description: 'Banner description'
+            },
+            type: {
+              type: 'string',
+              enum: ['home_slider', 'promotion', 'announcement'],
+              description: 'Banner type'
+            },
+            status: {
+              type: 'string',
+              enum: ['active', 'inactive', 'scheduled'],
+              description: 'Banner status'
+            },
+            position: {
+              type: 'integer',
+              description: 'Banner position order'
+            },
+            movie_id: {
+              type: 'string',
+              description: 'Associated movie ID'
+            },
+            start_date: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Banner start date'
+            },
+            end_date: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Banner end date'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp'
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp'
+            }
+          }
+        },
+
+        // Coupon: {
+        //   type: 'object',
+        //   properties: {
+        //     _id: {
+        //       type: 'string',
+        //       description: 'Coupon ID'
+        //     },
+        //     code: {
+        //       type: 'string',
+        //       description: 'Coupon code'
+        //     },
+        //     description: {
+        //       type: 'string',
+        //       description: 'Coupon description'
+        //     },
+        //     discount_type: {
+        //       type: 'string',
+        //       enum: ['percentage', 'fixed'],
+        //       description: 'Discount type'
+        //     },
+        //     discount_value: {
+        //       type: 'number',
+        //       description: 'Discount value'
+        //     },
+        //     min_purchase: {
+        //       type: 'number',
+        //       description: 'Minimum purchase amount'
+        //     },
+        //     max_discount: {
+        //       type: 'number',
+        //       description: 'Maximum discount amount'
+        //     },
+        //     valid_from: {
+        //       type: 'string',
+        //       format: 'date-time',
+        //       description: 'Valid from date'
+        //     },
+        //     valid_to: {
+        //       type: 'string',
+        //       format: 'date-time',
+        //       description: 'Valid to date'
+        //     },
+        //     is_active: {
+        //       type: 'boolean',
+        //       description: 'Is coupon active'
+        //     },
+        //     usage_limit: {
+        //       type: 'integer',
+        //       description: 'Usage limit'
+        //     },
+        //     current_usage: {
+        //       type: 'integer',
+        //       description: 'Current usage count'
+        //     },
+        //     created_at: {
+        //       type: 'string',
+        //       format: 'date-time',
+        //       description: 'Creation timestamp'
+        //     },
+        //     updated_at: {
+        //       type: 'string',
+        //       format: 'date-time',
+        //       description: 'Last update timestamp'
+        //     }
+        //   }
+        // },
+
+        // CouponUsage: {
+        //   type: 'object',
+        //   properties: {
+        //     _id: {
+        //       type: 'string',
+        //       description: 'Coupon usage ID'
+        //     },
+        //     user_id: {
+        //       type: 'string',
+        //       description: 'User ID'
+        //     },
+        //     coupon_id: {
+        //       type: 'string',
+        //       description: 'Coupon ID'
+        //     },
+        //     booking_id: {
+        //       type: 'string',
+        //       description: 'Booking ID'
+        //     },
+        //     discount_amount: {
+        //       type: 'number',
+        //       description: 'Discount amount applied'
+        //     },
+        //     used_at: {
+        //       type: 'string',
+        //       format: 'date-time',
+        //       description: 'Usage timestamp'
+        //     },
+        //     created_at: {
+        //       type: 'string',
+        //       format: 'date-time',
+        //       description: 'Creation timestamp'
+        //     }
+        //   }
+        // },
+
+        Favorite: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'Favorite ID'
+            },
+            user_id: {
+              type: 'string',
+              description: 'User ID'
+            },
+            movie_id: {
+              type: 'string',
+              description: 'Movie ID'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp'
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp'
+            }
+          }
+        },
+
+        Feedback: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'Feedback ID'
+            },
+            user_id: {
+              type: 'string',
+              description: 'User ID'
+            },
+            subject: {
+              type: 'string',
+              description: 'Feedback subject'
+            },
             message: {
               type: 'string',
-              description: 'Error message'
+              description: 'Feedback message'
             },
-            errorInfo: {
-              type: 'object',
-              description: 'Error information details'
+            type: {
+              type: 'string',
+              enum: ['general', 'bug', 'feature_request', 'complaint', 'praise'],
+              description: 'Feedback type'
+            },
+            status: {
+              type: 'string',
+              enum: ['pending', 'in_progress', 'resolved', 'closed'],
+              description: 'Feedback status'
+            },
+            admin_response: {
+              type: 'string',
+              description: 'Admin response'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp'
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp'
+            }
+          }
+        },
+
+        // MovieFeedback: {
+        //   type: 'object',
+        //   properties: {
+        //     _id: {
+        //       type: 'string',
+        //       description: 'Movie feedback ID'
+        //     },
+        //     user_id: {
+        //       type: 'string',
+        //       description: 'User ID'
+        //     },
+        //     movie_id: {
+        //       type: 'string',
+        //       description: 'Movie ID'
+        //     },
+        //     title: {
+        //       type: 'string',
+        //       description: 'Feedback title'
+        //     },
+        //     content: {
+        //       type: 'string',
+        //       description: 'Feedback content'
+        //     },
+        //     is_spoiler: {
+        //       type: 'boolean',
+        //       description: 'Contains spoilers'
+        //     },
+        //     status: {
+        //       type: 'string',
+        //       enum: ['pending', 'approved', 'rejected'],
+        //       description: 'Moderation status'
+        //     },
+        //     moderation_note: {
+        //       type: 'string',
+        //       description: 'Moderation note'
+        //     },
+        //     created_at: {
+        //       type: 'string',
+        //       format: 'date-time',
+        //       description: 'Creation timestamp'
+        //     },
+        //     updated_at: {
+        //       type: 'string',
+        //       format: 'date-time',
+        //       description: 'Last update timestamp'
+        //     }
+        //   }
+        // },
+
+        Notification: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'Notification ID'
+            },
+            user_id: {
+              type: 'string',
+              description: 'User ID'
+            },
+            title: {
+              type: 'string',
+              description: 'Notification title'
+            },
+            content: {
+              type: 'string',
+              description: 'Notification content'
+            },
+            type: {
+              type: 'string',
+              enum: ['system', 'booking', 'payment', 'movie', 'promotion', 'review'],
+              description: 'Notification type'
+            },
+            link: {
+              type: 'string',
+              description: 'Related link'
+            },
+            is_read: {
+              type: 'boolean',
+              description: 'Read status'
+            },
+            entity_id: {
+              type: 'string',
+              description: 'Related entity ID'
+            },
+            entity_type: {
+              type: 'string',
+              description: 'Related entity type'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp'
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp'
+            }
+          }
+        },
+
+        Rating: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'Rating ID'
+            },
+            user_id: {
+              type: 'string',
+              description: 'User ID'
+            },
+            movie_id: {
+              type: 'string',
+              description: 'Movie ID'
+            },
+            rating: {
+              type: 'number',
+              minimum: 1,
+              maximum: 5,
+              description: 'Rating value (1-5)'
+            },
+            comment: {
+              type: 'string',
+              description: 'Rating comment'
+            },
+            is_hidden: {
+              type: 'boolean',
+              description: 'Hidden by moderator'
+            },
+            moderation_note: {
+              type: 'string',
+              description: 'Moderation note'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp'
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp'
+            }
+          }
+        },
+
+        SeatLock: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'Seat lock ID'
+            },
+            showtime_id: {
+              type: 'string',
+              description: 'Showtime ID'
+            },
+            user_id: {
+              type: 'string',
+              description: 'User ID who locked the seats'
+            },
+            seats: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  row: {
+                    type: 'string',
+                    description: 'Seat row'
+                  },
+                  number: {
+                    type: 'integer',
+                    description: 'Seat number'
+                  }
+                }
+              },
+              description: 'Locked seats'
+            },
+            expires_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Lock expiration time'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp'
             }
           }
         }
@@ -591,9 +1062,7 @@ const options: swaggerJsdoc.Options = {
     ],
     paths: {}
   },
-  apis: isProduction ? 
-    [path.join(__dirname, '/*.js')] : 
-    ['./src/Swagger/*.ts']
+  apis: isProduction ? [path.join(__dirname, '/*.js')] : ['./src/Swagger/*.ts']
 }
 console.log([path.join(__dirname, './dist/Swagger/*.js')])
 

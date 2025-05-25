@@ -733,35 +733,4 @@
  *           format: date-time
  *           description: When the lock was created
  *
- *     BookingExpiration:
- *       type: object
- *       properties:
- *         booking_id:
- *           type: string
- *           description: Booking ID
- *         booking_time:
- *           type: string
- *           format: date-time
- *           description: When the booking was created
- *         expiration_time:
- *           type: string
- *           format: date-time
- *           description: When the booking will expire
- *         time_remaining_ms:
- *           type: integer
- *           description: Time remaining in milliseconds
- *         time_remaining_seconds:
- *           type: integer
- *           description: Time remaining in seconds
- *         is_expired:
- *           type: boolean
- *           description: Whether the booking has expired
- *         status:
- *           type: string
- *           enum: [pending, confirmed, cancelled, completed]
- *           description: Current booking status
- *         payment_status:
- *           type: string
- *           enum: [pending, completed, failed, refunded]
- *           description: Current payment status
  */
