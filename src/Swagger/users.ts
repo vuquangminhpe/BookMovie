@@ -84,11 +84,11 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [username, password]
+ *             required: [email, password]
  *             properties:
- *               username:
+ *               email:
  *                 type: string
- *                 example: "johndoe"
+ *                 example: "johndoe@gmail.com"
  *               password:
  *                 type: string
  *                 format: password
