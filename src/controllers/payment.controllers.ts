@@ -49,13 +49,25 @@ export const vnpayPaymentCallbackController = async (
 
     const result = await paymentService.verifyVnpayPayment(req.query, booking_id)
 
-    // Redirect to client with status
-    const redirectUrl = `${process.env.CLIENT_URL}/booking/${booking_id}/payment-result?status=${result.success ? 'success' : 'failed'}&orderId=${req.query.vnp_TxnRef}`
-    return res.redirect(redirectUrl)
+    // Redirect to deep link for mobile app
+    const deepLinkUrl = `yourapp://payment/result?status=${result.success ? 'success' : 'failed'}&bookingId=${booking_id}&orderId=${req.query.vnp_TxnRef}`
+    return res.redirect(deepLinkUrl)
+    // else {
+    //     // Redirect to web URL for browser
+    //     const redirectUrl = `${process.env.CLIENT_URL}/booking/${booking_id}/payment-result?status=${result.success ? 'success' : 'failed'}&orderId=${req.query.vnp_TxnRef}`
+    //     return res.redirect(redirectUrl)
+    //   }
   } catch (error) {
     console.error('VNPay callback error:', error)
     const booking_id = req.query.booking_id
-    return res.redirect(`${process.env.CLIENT_URL}/booking/${booking_id}/payment-result?status=error`)
+    const userAgent = req.headers['user-agent'] || ''
+    const isMobileApp = userAgent.includes('YourAppName') || req.headers['x-app-version']
+
+    if (isMobileApp) {
+      return res.redirect(`yourapp://payment/result?status=error&bookingId=${booking_id}`)
+    } else {
+      return res.redirect(`${process.env.CLIENT_URL}/booking/${booking_id}/payment-result?status=error`)
+    }
   }
 }
 
