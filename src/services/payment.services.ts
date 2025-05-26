@@ -190,7 +190,7 @@ class PaymentService {
         amount: amount,
         payment_method: PaymentMethod.VNPAY,
         order_id: orderId,
-        status: PaymentStatus.PENDING
+        status: PaymentStatus.COMPLETED //fix is pending
       })
     )
 
