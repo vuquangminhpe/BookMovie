@@ -124,7 +124,7 @@ class PaymentService {
         _id: payment_id,
         booking_id: new ObjectId(payload.booking_id),
         user_id: new ObjectId(user_id),
-        amount: booking.total_amount,
+        amount: booking.total_amount * 1000,
         payment_method: payload.payment_method,
         transaction_id: payload.transaction_id || '',
         payment_time: new Date(),
@@ -177,7 +177,7 @@ class PaymentService {
 
     process.env.TZ = 'Asia/Ho_Chi_Minh'
     const date = new Date()
-    const amount = booking.total_amount * 100
+    const amount = booking.total_amount * 1000
     const orderId = moment(date).format('DDHHmmss')
     const payment_id = new ObjectId()
 
@@ -416,7 +416,7 @@ class PaymentService {
               ticket_code: booking.ticket_code,
               status: booking.status,
               seats: booking.seats.length,
-              total_amount: booking.total_amount
+              total_amount: booking.total_amount * 1000
             },
             movie: movie
               ? {
@@ -472,7 +472,7 @@ class PaymentService {
             ticket_code: booking.ticket_code,
             status: booking.status,
             seats: booking.seats,
-            total_amount: booking.total_amount
+            total_amount: booking.total_amount * 1000
           },
           movie: movie
             ? {
