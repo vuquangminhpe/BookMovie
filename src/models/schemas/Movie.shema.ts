@@ -11,6 +11,7 @@ interface MovieType {
   director: string
   cast: string[]
   poster_url: string
+  trailer_url?: string
   status: MovieStatus
   average_rating?: number
   ratings_count?: number
@@ -37,6 +38,7 @@ export default class Movie {
   director: string
   cast: string[]
   poster_url: string
+  trailer_url?: string
   status: MovieStatus
   average_rating: number
   ratings_count: number
@@ -56,6 +58,7 @@ export default class Movie {
     director,
     cast,
     poster_url,
+    trailer_url,
     status,
     created_at,
     average_rating,
@@ -75,6 +78,7 @@ export default class Movie {
     this.director = director
     this.cast = cast
     this.poster_url = poster_url
+    this.trailer_url = trailer_url
     this.status = status || MovieStatus.COMING_SOON
     this.average_rating = average_rating || 0
     this.ratings_count = ratings_count || 0
