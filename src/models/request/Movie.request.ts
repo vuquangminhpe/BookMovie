@@ -1,5 +1,5 @@
 import { ParamsDictionary } from 'express-serve-static-core'
-import { MovieStatus } from '../schemas/Movie.shema'
+import { CastMember, MovieStatus } from '../schemas/Movie.shema'
 
 export interface CreateMovieReqBody {
   title: string
@@ -9,7 +9,7 @@ export interface CreateMovieReqBody {
   language: string
   release_date: string
   director: string
-  cast: string[]
+  cast: CastMember[]
   poster_url: string
   status?: MovieStatus
 }

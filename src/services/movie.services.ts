@@ -7,11 +7,11 @@ import feedbackService from './feedback.services'
 class MovieService {
   async createMovie(payload: CreateMovieReqBody) {
     const movie_id = new ObjectId()
-    const result = await databaseService.movies.insertOne(
+    await databaseService.movies.insertOne(
       new Movie({
         _id: movie_id,
         ...payload,
-        status: payload.status || MovieStatus.COMING_SOON, // Provide default status if not in payload
+        status: payload.status || MovieStatus.COMING_SOON,
         release_date: new Date(payload.release_date)
       })
     )

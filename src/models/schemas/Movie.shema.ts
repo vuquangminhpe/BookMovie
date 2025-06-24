@@ -26,7 +26,7 @@ export enum MovieStatus {
   NOW_SHOWING = 'now_showing',
   ENDED = 'ended'
 }
-interface CastMember {
+export interface CastMember {
   id: number
   name: string
   character: string
