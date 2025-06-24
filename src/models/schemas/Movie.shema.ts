@@ -9,7 +9,7 @@ interface MovieType {
   language: string
   release_date: Date
   director: string
-  cast: string[]
+  cast: CastMember[]
   poster_url: string
   trailer_url?: string
   status: MovieStatus
@@ -26,7 +26,14 @@ export enum MovieStatus {
   NOW_SHOWING = 'now_showing',
   ENDED = 'ended'
 }
-
+interface CastMember {
+  id: number
+  name: string
+  character: string
+  order: number
+  profile_image: string
+  gender: number
+}
 export default class Movie {
   _id?: ObjectId
   title: string
@@ -36,7 +43,7 @@ export default class Movie {
   language: string
   release_date: Date
   director: string
-  cast: string[]
+  cast: CastMember[]
   poster_url: string
   trailer_url?: string
   status: MovieStatus

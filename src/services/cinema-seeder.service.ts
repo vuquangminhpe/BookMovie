@@ -31,7 +31,15 @@ interface TMDBMovie {
   popularity: number
   credits?: {
     crew: { job: string; name: string }[]
-    cast: { name: string }[]
+    cast: {
+      id: number
+      name: string
+      character: string
+      order: number
+      profile_path: string | null
+      gender: number
+      known_for_department: string
+    }[]
   }
   videos?: {
     results: {
@@ -149,6 +157,9 @@ class DataTransformer {
     // Extract YouTube trailer URL from videos
     const trailerUrl = this.extractTrailerURL(tmdbMovie.videos)
 
+    // Transform cast with profile images
+    const castWithImages = this.transformCastWithImages(tmdbMovie.credits?.cast || [])
+
     return {
       title: tmdbMovie.title,
       description: tmdbMovie.overview || '',
@@ -161,15 +172,26 @@ class DataTransformer {
       language: tmdbMovie.original_language || 'en',
       release_date: new Date(tmdbMovie.release_date),
       director: tmdbMovie.credits?.crew?.find((person) => person.job === 'Director')?.name || 'Unknown',
-      cast: tmdbMovie.credits?.cast?.slice(0, 10).map((actor) => actor.name) || [],
+      cast: castWithImages, // ✅ Now includes images and character names
       poster_url: tmdbMovie.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbMovie.poster_path}` : '',
-      trailer_url: trailerUrl, // ✅ YouTube trailer URL
+      trailer_url: trailerUrl,
       status: this.getMovieStatus(tmdbMovie.release_date),
       average_rating: Math.round(tmdbMovie.vote_average * 10) / 10,
       ratings_count: tmdbMovie.vote_count || 0,
       is_featured: tmdbMovie.popularity > 100,
       featured_order: tmdbMovie.popularity > 100 ? Math.floor(Math.random() * 10) : null
     }
+  }
+
+  static transformCastWithImages(cast: any[]): any[] {
+    return cast.slice(0, 10).map((actor) => ({
+      id: actor.id,
+      name: actor.name,
+      character: actor.character || 'Unknown Role',
+      order: actor.order,
+      profile_image: actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : '',
+      gender: actor.gender || 0 // 0 = Not specified, 1 = Female, 2 = Male
+    }))
   }
 
   static extractTrailerURL(videos: any): string {
@@ -267,8 +289,8 @@ class DataTransformer {
     const screenTypes = [
       ScreenType.STANDARD,
       ScreenType.IMAX,
-      ScreenType.PREMIUM,
       ScreenType.FOUR_DX,
+      ScreenType.PREMIUM,
       ScreenType.THREE_D
     ]
 
@@ -523,9 +545,14 @@ export class CinemaDataSeeder {
       (movie) => new Movie(DataTransformer.transformTMDBMovie(movie, genres))
     )
 
-    // Log movies with trailers for verification
+    // Log movies with trailers and cast images for verification
     const moviesWithTrailers = transformedMovies.filter((m) => m.trailer_url).length
+    const moviesWithCastImages = transformedMovies.filter(
+      (m) => m.cast && Array.isArray(m.cast) && m.cast.some((actor: any) => actor.profile_image)
+    ).length
+
     console.log(`   🎬 Tìm thấy ${moviesWithTrailers}/${transformedMovies.length} phim có trailer YouTube`)
+    console.log(`   👥 Tìm thấy ${moviesWithCastImages}/${transformedMovies.length} phim có cast images`)
 
     await databaseService.movies.insertMany(transformedMovies)
     console.log(`   ✅ Đã thêm ${transformedMovies.length} phim vào database`)
@@ -624,9 +651,14 @@ export class CinemaDataSeeder {
       console.log('🎉 === Hoàn tất seed dữ liệu! ===')
       console.log(`📽️  Movies: ${movies.length} (index ${startIndex}-${startIndex + movies.length - 1})`)
 
-      // Count movies with trailers
+      // Count movies with trailers and cast images
       const moviesWithTrailers = movies.filter((m) => m.trailer_url && m.trailer_url.length > 0).length
+      const moviesWithCastImages = movies.filter(
+        (m) => m.cast && Array.isArray(m.cast) && m.cast.some((actor: any) => actor.profile_image)
+      ).length
+
       console.log(`🎬 Movies có YouTube trailers: ${moviesWithTrailers}/${movies.length}`)
+      console.log(`👥 Movies có cast profile images: ${moviesWithCastImages}/${movies.length}`)
 
       console.log(`🏢 Theaters: ${theaters.length}`)
       console.log(`🎪 Screens: ${screens.length}`)
@@ -636,6 +668,7 @@ export class CinemaDataSeeder {
       console.log('')
       console.log('✨ Frontend của bạn giờ đã có đầy đủ dữ liệu!')
       console.log('🎥 Bonus: Movies có YouTube trailers để preview!')
+      console.log('👨‍🎭 Bonus: Cast members có profile images!')
     } catch (error: any) {
       console.error('💥 Lỗi khi seed dữ liệu:', error)
       throw error

@@ -22,6 +22,7 @@ import favoritesRouter from './routes/favorites.routes'
 import recommendationRouter from './routes/recommendation.routes'
 import bookingExpirationService from './services/booking-expiration.services'
 import { setupCleanupJobs } from './utils/cleanup'
+import feedbacksRouter from './routes/feedback.routes'
 
 config()
 
@@ -164,7 +165,7 @@ app.use('/notifications', notificationsRouter)
 app.use('/coupons', couponsRouter)
 app.use('/favorites', favoritesRouter)
 app.use('/recommendations', recommendationRouter)
-
+app.use('/feedback', feedbacksRouter)
 // Error handling
 app.use(defaultErrorHandler)
 
