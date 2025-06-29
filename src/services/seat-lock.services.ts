@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import databaseService from './database.services'
-import SeatLock from '../models/schemas/SeatLock.schema'
+import SeatLock, { SeatSelectionStatus } from '../models/schemas/SeatLock.schema'
 import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
 
@@ -48,6 +48,7 @@ class SeatLockService {
         showtime_id: new ObjectId(showtime_id),
         user_id: new ObjectId(user_id),
         seats,
+        status: SeatSelectionStatus.SELECTED,
         expires_at: expiresAt
       })
     )

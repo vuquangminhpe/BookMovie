@@ -3,6 +3,7 @@ import swaggerJsdoc from 'swagger-jsdoc'
 import swaggerUi from 'swagger-ui-express'
 import { isProduction } from '../constants/config'
 import path from 'path'
+import Partner from '~/models/schemas/Partner.schema'
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -985,6 +986,51 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               format: 'date-time',
               description: 'Creation timestamp'
+            }
+          }
+        },
+        Partner: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'Partner ID'
+            },
+            name: {
+              type: 'string',
+              description: 'Partner name'
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'Partner email'
+            },
+            phone: {
+              type: 'string',
+              description: 'Partner phone number'
+            },
+            company_name: {
+              type: 'string',
+              description: 'Company name of the partner'
+            },
+            theater_id: {
+              type: 'string',
+              description: 'Partner theater ID'
+            },
+            status: {
+              type: 'string',
+              enum: ['active', 'inactive', 'pending'],
+              description: 'Partner status'
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp'
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp'
             }
           }
         }

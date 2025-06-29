@@ -18,6 +18,8 @@ import databaseService from './database.services'
 import VideoStatus from '../models/schemas/VideoStatus.schema'
 import { uploadFileS3 } from '../utils/s3'
 import { CompleteMultipartUploadCommandOutput } from '@aws-sdk/client-s3'
+import { downloadYouTubeVideo } from '../utils/youtube-download'
+import { ObjectId } from 'mongodb'
 
 let mime: any
 ;(async () => {
@@ -54,14 +56,27 @@ class Queue {
   async enqueue(item: string): Promise<string> {
     return new Promise((resolve, reject) => {
       this.items.push(item)
-      const idName = item.replace(/\\/g, '\\\\').split('\\').pop() as string
+      const idName = item.replace(/\\/g, '\\\\').split('\\').pop()
+      console.log(idName)
+
+      if (!idName || typeof idName !== 'string' || !idName.trim()) {
+        console.error('enqueue error: Invalid video file name', { item, idName })
+        return reject(new Error('Invalid video file name'))
+      }
+      if (typeof EncodingStatus.Pending === 'undefined') {
+        console.error('enqueue error: EncodingStatus.Pending is undefined')
+        return reject(new Error('EncodingStatus.Pending is undefined'))
+      }
+      const Id = new ObjectId()
+      const videoStatusObj = new VideoStatus({
+        _id: Id,
+        name: idName,
+        status: EncodingStatus.Pending
+      })
+      console.log('Insert VideoStatus:', videoStatusObj)
+      const plainVideoStatus = JSON.parse(JSON.stringify(videoStatusObj))
       databaseService.videoStatus
-        .insertOne(
-          new VideoStatus({
-            name: idName,
-            status: EncodingStatus.Pending
-          })
-        )
+        .insertOne(plainVideoStatus)
         .then(() => {
           this.processEncode(resolve, reject)
         })
@@ -92,9 +107,13 @@ class Queue {
         await encodeHLSWithMultipleVideoStreams(videoPath)
         this.items.shift()
 
-        const files = getFiles(path.resolve(UPLOAD_VIDEO_HLS_DIR, idName))
+        const files = getFiles(path.resolve(UPLOAD_VIDEO_HLS_DIR, idName.split('.')[0]))
+        console.log(`Found ${files.length} files to upload for video: ${idName}`)
+        console.log(getFiles(path.resolve(UPLOAD_VIDEO_HLS_DIR, idName)))
+
         let m3u8Url = ''
         const filesToCleanup: string[] = []
+        console.log(`Uploading ${files} files to S3...`)
 
         await Promise.all(
           files.map(async (filepath) => {
@@ -129,8 +148,15 @@ class Queue {
         )
 
         console.log(`✅ Encoded and cleaned up video: ${idName}`)
+        console.log(`   M3U8 URL: ${m3u8Url}`)
 
-        if (onComplete && m3u8Url) onComplete(m3u8Url)
+        if (onComplete) {
+          if (m3u8Url) {
+            onComplete(m3u8Url)
+          } else {
+            onError && onError(new Error('No master.m3u8 URL found'))
+          }
+        }
       } catch (error) {
         // Cleanup on error
         await immediateCleanup([videoPath])
@@ -155,7 +181,7 @@ class Queue {
       }
 
       this.encoding = false
-      this.processEncode()
+      this.processEncode(onComplete, onError)
     }
   }
 }
@@ -295,6 +321,25 @@ class MediaService {
   async getVideoStatus(idStatus: string) {
     const result = await databaseService.videoStatus.findOne({ name: idStatus })
     return result
+  }
+  async processYouTubeToHLS(youtubeUrl: string): Promise<string> {
+    let tempVideoPath = ''
+
+    try {
+      //  Download YouTube video
+      tempVideoPath = await downloadYouTubeVideo(youtubeUrl)
+
+      //  existing queue để convert HLS
+      const m3u8Url = await queue.enqueue(tempVideoPath)
+
+      return m3u8Url
+    } catch (error) {
+      // Cleanup temp file
+      if (tempVideoPath && fs.existsSync(tempVideoPath)) {
+        fs.unlinkSync(tempVideoPath)
+      }
+      throw error
+    }
   }
 }
 

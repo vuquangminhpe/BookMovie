@@ -1,7 +1,7 @@
 // scripts/seed-cinema-data.ts
 // Script để seed dữ liệu cinema từ TMDB API vào MongoDB
 
-import { CinemaDataSeeder } from '../services/cinema-seeder.service'
+import cinemaSeederService from '../services/cinema-seeder.service'
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY || process.env.TMDB_ACCESS_TOKEN || 'YOUR_TMDB_API_KEY_HERE'
 
@@ -38,7 +38,7 @@ async function runSeeder() {
   console.log(`📊 Lấy ${movieCount} movies bắt đầu từ index ${startIndex}`)
   console.log('')
 
-  const seeder = new CinemaDataSeeder(TMDB_API_KEY)
+  const seeder = cinemaSeederService
 
   try {
     await seeder.seedAll(movieCount, startIndex)

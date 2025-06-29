@@ -353,3 +353,32 @@ export const FAVORITE_MESSAGES = {
   MOVIE_NOT_FAVORITED: 'Movie is not in favorites',
   INVALID_MOVIE_ID: 'Invalid movie id'
 } as const
+export const PARTNER_MESSAGES = {
+  // Partner management
+  CREATE_PARTNER_SUCCESS: 'Create partner success',
+  UPDATE_PARTNER_SUCCESS: 'Update partner success',
+  DELETE_PARTNER_SUCCESS: 'Delete partner success',
+  GET_PARTNER_SUCCESS: 'Get partner success',
+  GET_PARTNERS_SUCCESS: 'Get partners success',
+  PARTNER_NOT_FOUND: 'Partner not found',
+  INVALID_PARTNER_ID: 'Invalid partner id',
+  EMAIL_ALREADY_EXISTS: 'Email already exists',
+  THEATER_ALREADY_HAS_PARTNER: 'Theater already has a partner',
+
+  // Partner movie management
+  CREATE_MOVIE_SUCCESS: 'Create movie success',
+  UPDATE_MOVIE_SUCCESS: 'Update movie success',
+  DELETE_MOVIE_SUCCESS: 'Delete movie success',
+  GET_MOVIES_SUCCESS: 'Get movies success',
+  MOVIE_NOT_FOUND: 'Movie not found or does not belong to partner',
+
+  // Validation messages
+  NAME_IS_REQUIRED: 'Name is required',
+  EMAIL_IS_REQUIRED: 'Email is required',
+  PHONE_IS_REQUIRED: 'Phone is required',
+  COMPANY_NAME_IS_REQUIRED: 'Company name is required',
+  THEATER_ID_IS_REQUIRED: 'Theater ID is required',
+  INVALID_EMAIL_FORMAT: 'Invalid email format',
+  INVALID_PHONE_FORMAT: 'Invalid phone format',
+  INVALID_STATUS: 'Invalid partner status'
+} as const

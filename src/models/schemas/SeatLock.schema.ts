@@ -7,11 +7,17 @@ interface SeatLockType {
   seats: Array<{
     row: string
     number: number
+    section?: string
   }>
+  status: SeatSelectionStatus
   expires_at: Date
   created_at?: Date
 }
-
+export enum SeatSelectionStatus {
+  SELECTED = 'selected',
+  EXPIRED = 'expired',
+  CONFIRMED = 'confirmed'
+}
 export default class SeatLock {
   _id?: ObjectId
   showtime_id: ObjectId
@@ -19,6 +25,7 @@ export default class SeatLock {
   seats: Array<{
     row: string
     number: number
+    section?: string
   }>
   expires_at: Date
   created_at: Date

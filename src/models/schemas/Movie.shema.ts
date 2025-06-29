@@ -17,6 +17,7 @@ interface MovieType {
   ratings_count?: number
   is_featured?: boolean
   featured_order?: number | null
+  partner_id?: ObjectId
   created_at?: Date
   updated_at?: Date
 }

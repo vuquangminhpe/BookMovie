@@ -3,7 +3,8 @@ import { ObjectId } from 'mongodb'
 export enum BannerTypes {
   HOME_SLIDER = 'home_slider',
   PROMOTION = 'promotion',
-  ANNOUNCEMENT = 'announcement'
+  ANNOUNCEMENT = 'announcement',
+  MOVIE_PROMOTION = 'movie_promotion'
 }
 
 export enum BannerStatus {

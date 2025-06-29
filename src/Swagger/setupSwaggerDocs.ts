@@ -18,6 +18,7 @@ import './notifications'
 import './admin'
 import './booking'
 import './payment'
+import './partners'
 // Setup Swagger documentation
 export const setupSwaggerDocs = (app: express.Express) => {
   // This creates a route at /api-docs that serves the Swagger UI
