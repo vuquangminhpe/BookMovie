@@ -18,6 +18,7 @@ import CouponUsage from '~/models/schemas/CouponUsage.schema'
 import Favorite from '~/models/schemas/Favorite.schema'
 import SeatLock from '~/models/schemas/SeatLock.schema'
 import Partner from '~/models/schemas/Partner.schema'
+import Contract from '~/models/schemas/Contact.schema'
 
 const uri = envConfig.mongodb_url
 const dbName = envConfig.db_name
@@ -116,6 +117,9 @@ class DatabaseService {
   }
   get partners(): Collection<Partner> {
     return this.db.collection('partners')
+  }
+  get contracts(): Collection<Contract> {
+    return this.db.collection('contracts')
   }
 }
 

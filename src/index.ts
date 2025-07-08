@@ -24,6 +24,7 @@ import bookingExpirationService from './services/booking-expiration.services'
 import { setupCleanupJobs } from './utils/cleanup'
 import feedbacksRouter from './routes/feedback.routes'
 import partnerRouter from './routes/partner.routes'
+import staffRouter from './routes/staff.routes'
 
 config()
 
@@ -167,6 +168,7 @@ app.use('/coupons', couponsRouter)
 app.use('/favorites', favoritesRouter)
 app.use('/recommendations', recommendationRouter)
 app.use('/feedback', feedbacksRouter)
+app.use('/staff', staffRouter)
 app.use('/partners', partnerRouter)
 // Error handling
 app.use(defaultErrorHandler)

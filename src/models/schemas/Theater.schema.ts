@@ -11,6 +11,11 @@ interface TheaterType {
   screens: number
   amenities: string[]
   status: TheaterStatus
+  manager_id?: ObjectId // ID của staff quản lý rạp này
+  contact_phone?: string
+  contact_email?: string
+  description?: string
+  images?: string[] // Array URL hình ảnh rạp
   created_at?: Date
   updated_at?: Date
 }
@@ -32,6 +37,11 @@ export default class Theater {
   screens: number
   amenities: string[]
   status: TheaterStatus
+  manager_id?: ObjectId
+  contact_phone: string
+  contact_email: string
+  description: string
+  images: string[]
   created_at: Date
   updated_at: Date
 
@@ -46,6 +56,11 @@ export default class Theater {
     screens,
     amenities,
     status,
+    manager_id,
+    contact_phone,
+    contact_email,
+    description,
+    images,
     created_at,
     updated_at
   }: TheaterType) {
@@ -60,6 +75,11 @@ export default class Theater {
     this.screens = screens
     this.amenities = amenities
     this.status = status || TheaterStatus.ACTIVE
+    this.manager_id = manager_id
+    this.contact_phone = contact_phone || ''
+    this.contact_email = contact_email || ''
+    this.description = description || ''
+    this.images = images || []
     this.created_at = created_at || date
     this.updated_at = updated_at || date
   }

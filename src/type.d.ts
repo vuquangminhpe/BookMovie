@@ -13,5 +13,6 @@ declare module 'express' {
     decode_forgot_password_token?: TokenPayload
     tweet?: Tweet
     story?: Stories
+    contract?: Contract
   }
 }
