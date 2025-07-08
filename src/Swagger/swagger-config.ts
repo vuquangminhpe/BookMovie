@@ -171,6 +171,33 @@ const options: swaggerJsdoc.Options = {
               type: 'string',
               format: 'date-time',
               description: 'Last update timestamp'
+            },
+            manager_id: {
+              type: 'string',
+              description: 'Manager ID'
+            },
+            contact_phone: {
+              type: 'string',
+              description: 'Contact phone number'
+            },
+            contact_email: {
+              type: 'string',
+              format: 'email',
+              description: 'Contact email address'
+            },
+
+            description: {
+              type: 'string',
+              description: 'Theater description'
+            },
+            images: {
+              type: 'array',
+              items: {
+                type: 'string',
+                format: 'uri',
+                description: 'Image URL'
+              },
+              description: 'Theater images'
             }
           }
         },

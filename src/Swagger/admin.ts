@@ -590,6 +590,517 @@
  *       404:
  *         description: User not found
  *
+ * /admin/users/{user_id}/promote-to-staff:
+ *   put:
+ *     summary: Promote user to staff
+ *     description: Admin only - Promote a user to staff role and create contract
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID to promote
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - position
+ *               - salary
+ *               - start_date
+ *               - end_date
+ *             properties:
+ *               position:
+ *                 type: string
+ *                 description: Staff position/title
+ *               salary:
+ *                 type: number
+ *                 description: Monthly salary
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Contract start date
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Contract end date
+ *               contract_type:
+ *                 type: string
+ *                 enum: [full_time, part_time, contract, intern]
+ *                 default: full_time
+ *               benefits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of benefits
+ *               terms:
+ *                 type: string
+ *                 description: Additional contract terms
+ *     responses:
+ *       200:
+ *         description: User promoted to staff successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User promoted to staff and contract created successfully
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     user_id:
+ *                       type: string
+ *                     contract_id:
+ *                       type: string
+ *       400:
+ *         description: Invalid input or user already staff
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: User not found
+ *
+ * /admin/contracts:
+ *   get:
+ *     summary: Get all contracts
+ *     description: Admin only - Get list of all staff contracts with filtering and pagination
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, active, expired, terminated]
+ *         description: Filter by contract status
+ *       - in: query
+ *         name: staff_id
+ *         schema:
+ *           type: string
+ *         description: Filter by staff member ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by staff name or position
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           default: created_at
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Contracts retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get contracts success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     contracts:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           staff_id:
+ *                             type: string
+ *                           staff_info:
+ *                             type: object
+ *                             properties:
+ *                               name:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                               username:
+ *                                 type: string
+ *                           position:
+ *                             type: string
+ *                           salary:
+ *                             type: number
+ *                           contract_type:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                           start_date:
+ *                             type: string
+ *                             format: date-time
+ *                           end_date:
+ *                             type: string
+ *                             format: date-time
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *
+ *   post:
+ *     summary: Create contract
+ *     description: Admin only - Create a new staff contract
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - staff_id
+ *               - position
+ *               - salary
+ *               - start_date
+ *               - end_date
+ *             properties:
+ *               staff_id:
+ *                 type: string
+ *                 description: Staff member ID
+ *               position:
+ *                 type: string
+ *                 description: Job position/title
+ *               salary:
+ *                 type: number
+ *                 description: Monthly salary
+ *               contract_type:
+ *                 type: string
+ *                 enum: [full_time, part_time, contract, intern]
+ *                 default: full_time
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Contract start date
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Contract end date
+ *               benefits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of benefits
+ *               terms:
+ *                 type: string
+ *                 description: Additional contract terms
+ *     responses:
+ *       200:
+ *         description: Contract created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Create contract success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     contract_id:
+ *                       type: string
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: Staff member not found
+ *
+ * /admin/contracts/{contract_id}:
+ *   get:
+ *     summary: Get contract by ID
+ *     description: Admin only - Get detailed contract information
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: contract_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Contract ID
+ *     responses:
+ *       200:
+ *         description: Contract details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get contract success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     staff_id:
+ *                       type: string
+ *                     staff_info:
+ *                       type: object
+ *                     admin_id:
+ *                       type: string
+ *                     position:
+ *                       type: string
+ *                     salary:
+ *                       type: number
+ *                     contract_type:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     start_date:
+ *                       type: string
+ *                       format: date-time
+ *                     end_date:
+ *                       type: string
+ *                       format: date-time
+ *                     benefits:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     terms:
+ *                       type: string
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Invalid contract ID
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: Contract not found
+ *
+ *   put:
+ *     summary: Update contract
+ *     description: Admin only - Update contract information
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: contract_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Contract ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               position:
+ *                 type: string
+ *               salary:
+ *                 type: number
+ *               contract_type:
+ *                 type: string
+ *                 enum: [full_time, part_time, contract, intern]
+ *               start_date:
+ *                 type: string
+ *                 format: date-time
+ *               end_date:
+ *                 type: string
+ *                 format: date-time
+ *               benefits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               terms:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Contract updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Update contract success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     contract_id:
+ *                       type: string
+ *       400:
+ *         description: Invalid input or contract cannot be updated
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: Contract not found
+ *
+ * /admin/contracts/{contract_id}/activate:
+ *   put:
+ *     summary: Activate contract
+ *     description: Admin only - Activate a draft contract
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: contract_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Contract ID
+ *     responses:
+ *       200:
+ *         description: Contract activated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Activate contract success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     contract_id:
+ *                       type: string
+ *       400:
+ *         description: Contract already active or cannot be activated
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: Contract not found
+ *
+ * /admin/contracts/{contract_id}/terminate:
+ *   put:
+ *     summary: Terminate contract
+ *     description: Admin only - Terminate an active contract
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: contract_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Contract ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for termination
+ *     responses:
+ *       200:
+ *         description: Contract terminated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Terminate contract success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     contract_id:
+ *                       type: string
+ *       400:
+ *         description: Contract already terminated or cannot be terminated
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: Contract not found
+ *
+ * /admin/contracts/check-expired:
+ *   post:
+ *     summary: Check and update expired contracts
+ *     description: Admin only - Check for expired contracts and update their status
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Expired contracts checked and updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Check expired contracts success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     expired_count:
+ *                       type: integer
+ *                       description: Number of contracts that were expired
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *
  * /admin/movies/{movie_id}/feature:
  *   put:
  *     summary: Update movie feature status
