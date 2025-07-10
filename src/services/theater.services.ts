@@ -5,13 +5,15 @@ import databaseService from './database.services'
 import { CreateTheaterReqBody, GetTheatersReqQuery, UpdateTheaterReqBody } from '../models/request/Theater.request'
 
 class TheaterService {
-  async createTheater(payload: CreateTheaterReqBody) {
+  async createTheater(user_id: string, payload: CreateTheaterReqBody) {
     const theater_id = new ObjectId()
-    const result = await databaseService.theaters.insertOne(
+
+    await databaseService.theaters.insertOne(
       new Theater({
         _id: theater_id,
         ...payload,
-        status: payload.status || TheaterStatus.ACTIVE
+        status: payload.status || TheaterStatus.ACTIVE,
+        manager_id: new ObjectId(user_id)
       })
     )
     return { theater_id: theater_id.toString() }

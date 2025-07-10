@@ -13,7 +13,8 @@ export const createTheaterController = async (
   req: Request<ParamsDictionary, any, CreateTheaterReqBody>,
   res: Response
 ) => {
-  const result = await theaterService.createTheater(req.body)
+  const user_id = req.decode_authorization?.user_id as string
+  const result = await theaterService.createTheater(user_id, req.body)
   res.json({
     message: THEATER_MESSAGES.CREATE_THEATER_SUCCESS,
     result
