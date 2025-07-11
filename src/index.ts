@@ -21,10 +21,12 @@ import couponsRouter from './routes/coupons.routes'
 import favoritesRouter from './routes/favorites.routes'
 import recommendationRouter from './routes/recommendation.routes'
 import bookingExpirationService from './services/booking-expiration.services'
-import { setupCleanupJobs } from './utils/cleanup'
+import { setupCleanupJobs, shutdownCleanupJobs } from './utils/cleanup'
 import feedbacksRouter from './routes/feedback.routes'
 import partnerRouter from './routes/partner.routes'
 import staffRouter from './routes/staff.routes'
+import showtimeCleanupService from './services/showtime-cleanup.services'
+import { setupSocketHandlers } from './utils/socket-handlers'
 
 config()
 
@@ -60,7 +62,7 @@ connectWithRetry().catch((error) => {
 const app = express()
 const httpServer = createServer(app)
 
-// Setup cleanup jobs
+// Setup cleanup jobs (bao gồm showtime cleanup)
 setupCleanupJobs()
 
 // Socket.io setup với config cho Render
@@ -75,8 +77,17 @@ const io = new SocketServer(httpServer, {
   pingInterval: 25000
 })
 
+// Setup socket handlers (bao gồm showtime cleanup handlers)
+setupSocketHandlers(io)
+
 // Initialize server-side verification code monitor
 initVerificationCodeMonitor(io)
+
+// Setup notification service với socket.io
+notificationService.setSocketIO(io)
+
+// Setup showtime cleanup service với socket.io
+showtimeCleanupService.setSocketIO(io)
 
 // Security middleware
 app.use(
@@ -141,10 +152,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 // Setup Swagger docs
 setupSwaggerDocs(app)
 
-// Setup notification service
-notificationService.setSocketIO(io)
-
-// Health check endpoint đặc biệt cho Render
+// Health check endpoint đặc biệt cho Render (enhanced với service status)
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
@@ -152,11 +160,62 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     memory: process.memoryUsage(),
     environment: process.env.NODE_ENV,
-    render: isRender
+    render: isRender,
+    services: {
+      database: 'connected',
+      showtime_cleanup: 'running',
+      booking_expiration: 'running',
+      socket_io: 'connected'
+    }
   })
 })
 
-// Routes
+// Admin endpoint cho manual showtime cleanup
+app.post('/admin/cleanup/showtimes', async (req, res) => {
+  try {
+    // TODO: Add admin authentication middleware
+    const result = await showtimeCleanupService.triggerManualCleanup()
+
+    // Emit socket event để notify real-time
+    io.emit('admin_showtime_cleanup', {
+      result,
+      triggered_at: new Date().toISOString(),
+      triggered_by: 'admin_api'
+    })
+
+    res.json({
+      success: true,
+      message: 'Manual showtime cleanup completed',
+      result
+    })
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Showtime cleanup failed',
+      error: error.message
+    })
+  }
+})
+
+// Admin endpoint cho showtime cleanup stats
+app.get('/admin/cleanup/showtimes/stats', async (req, res) => {
+  try {
+    // TODO: Add admin authentication middleware
+    const stats = await showtimeCleanupService.getCleanupStats()
+
+    res.json({
+      success: true,
+      data: stats
+    })
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
+// Routes (giữ nguyên thứ tự cũ)
 app.use('/users', usersRouter)
 app.use('/medias', mediasRouter)
 app.use('/static', staticRouter)
@@ -170,10 +229,11 @@ app.use('/recommendations', recommendationRouter)
 app.use('/feedback', feedbacksRouter)
 app.use('/staff', staffRouter)
 app.use('/partners', partnerRouter)
+
 // Error handling
 app.use(defaultErrorHandler)
 
-// Graceful shutdown cho Render
+// Graceful shutdown cho Render (enhanced với cleanup services)
 const gracefulShutdown = (signal: string) => {
   console.log(`${signal} received, starting graceful shutdown...`)
 
@@ -181,9 +241,10 @@ const gracefulShutdown = (signal: string) => {
   httpServer.close(() => {
     console.log('HTTP server closed')
 
-    // Cleanup booking jobs
+    // Cleanup all services
+    shutdownCleanupJobs()
     bookingExpirationService.clearAllJobs()
-    console.log('Booking expiration jobs cleared')
+    console.log('All cleanup jobs cleared')
 
     // Close database connection
     // databaseService.close() // Uncomment if you have this method
@@ -220,10 +281,29 @@ if (isRender) {
   }, 30000) // Check every 30 seconds
 }
 
+// Showtime cleanup monitoring (log stats mỗi giờ)
+setInterval(
+  async () => {
+    try {
+      const stats = await showtimeCleanupService.getCleanupStats()
+      console.log('🎬 Showtime cleanup stats:', {
+        total: stats.total_showtimes,
+        expired: stats.expired_but_not_completed,
+        abandoned: stats.abandoned_showtimes
+      })
+    } catch (error) {
+      console.error('❌ Error getting showtime stats:', error)
+    }
+  },
+  60 * 60 * 1000
+) // Every hour
+
 // Start server
 httpServer.listen(PORT, () => {
   console.log(`✅ Server listening on port ${PORT}`)
   console.log(`📚 Swagger documentation: http://localhost:${PORT}/api-docs`)
+  console.log(`📡 Socket.io enabled with showtime cleanup handlers`)
+  console.log(`🎬 Showtime cleanup service running (every 10 minutes)`)
 
   if (isRender) {
     console.log('🌐 Render.com deployment detected')

@@ -18,6 +18,7 @@ interface MovieType {
   is_featured?: boolean
   featured_order?: number | null
   partner_id?: ObjectId
+  created_by?: ObjectId // Staff ID who created this movie
   created_at?: Date
   updated_at?: Date
 }
@@ -27,6 +28,7 @@ export enum MovieStatus {
   NOW_SHOWING = 'now_showing',
   ENDED = 'ended'
 }
+
 export interface CastMember {
   id: number
   name: string
@@ -35,6 +37,7 @@ export interface CastMember {
   profile_image: string
   gender: number
 }
+
 export default class Movie {
   _id?: ObjectId
   title: string
@@ -52,6 +55,7 @@ export default class Movie {
   ratings_count: number
   is_featured?: boolean
   featured_order: number | null
+  created_by?: ObjectId
   created_at: Date
   updated_at: Date
 
@@ -73,6 +77,7 @@ export default class Movie {
     ratings_count,
     is_featured,
     featured_order,
+    created_by,
     updated_at
   }: MovieType) {
     const date = new Date()
@@ -92,6 +97,7 @@ export default class Movie {
     this.ratings_count = ratings_count || 0
     this.is_featured = is_featured || false
     this.featured_order = featured_order || null
+    this.created_by = created_by
     this.created_at = created_at || date
     this.updated_at = updated_at || date
   }

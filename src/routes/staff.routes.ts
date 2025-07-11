@@ -14,8 +14,7 @@ import { getMyContractController } from '../controllers/contract.controllers'
 import {
   createTheaterController,
   getTheaterByIdController,
-  updateTheaterController,
-  getTheatersController
+  updateTheaterController
 } from '../controllers/theater.controllers'
 
 import {
@@ -26,23 +25,29 @@ import {
   deleteScreenController
 } from '../controllers/screen.controllers'
 
+// Import staff movie controllers riêng biệt
 import {
-  createMovieController,
-  getMoviesController,
-  getMovieByIdController,
-  updateMovieController,
-  deleteMovieController
-} from '../controllers/movies.controllers'
+  staffCreateMovieController,
+  staffGetMyMoviesController,
+  staffGetMyMovieByIdController,
+  staffUpdateMyMovieController,
+  staffDeleteMyMovieController,
+  staffGetMyMovieRatingsController,
+  staffGetMyMovieFeedbacksController,
+  staffGetMyMovieStatsController,
+  staffGetMyTopRatedMoviesController
+} from '../controllers/staff/movie.controllers/movie.controllers'
 
+// Import staff showtime controllers riêng biệt
 import {
-  createShowtimeController,
-  getShowtimesController,
-  getShowtimeByIdController,
-  updateShowtimeController,
-  deleteShowtimeController
-} from '../controllers/showtimes.controllers'
+  staffCreateShowtimeController,
+  staffGetMyShowtimesController,
+  staffGetMyShowtimeByIdController,
+  staffUpdateMyShowtimeController,
+  staffDeleteMyShowtimeController
+} from '../controllers/staff/movie.controllers/showtime.controllers'
 
-import { getMyBookingsController, getBookingByIdController } from '../controllers/bookings.controllers'
+import { getBookingByIdController } from '../controllers/bookings.controllers'
 import databaseService from '~/services/database.services'
 import { ObjectId } from 'bson'
 
@@ -192,99 +197,135 @@ staffRouter.delete('/screens/:screen_id', wrapAsync(deleteScreenController))
 
 /**
  * =============================================================================
- * MOVIE MANAGEMENT (Staff can create movies for their theater)
+ * MOVIE MANAGEMENT (Staff chỉ quản lý movies của mình)
  * =============================================================================
  */
 
 /**
- * Description: Create movie
+ * Description: Create movie (Tạo movie mới)
  * Path: /staff/movies
  * Method: POST
  * Header: { Authorization: Bearer <access_token> }
  * Body: CreateMovieReqBody
  */
-staffRouter.post('/movies', wrapAsync(createMovieController))
+staffRouter.post('/movies', wrapAsync(staffCreateMovieController))
 
 /**
- * Description: Get movies
+ * Description: Get my movies (Lấy danh sách movies của mình)
  * Path: /staff/movies
  * Method: GET
  * Header: { Authorization: Bearer <access_token> }
+ * Query: GetMoviesReqQuery
  */
-staffRouter.get('/movies', wrapAsync(getMoviesController))
+staffRouter.get('/movies', wrapAsync(staffGetMyMoviesController))
 
 /**
- * Description: Get movie details
+ * Description: Get my movie details (Lấy chi tiết movie của mình)
  * Path: /staff/movies/:movie_id
  * Method: GET
  * Header: { Authorization: Bearer <access_token> }
  */
-staffRouter.get('/movies/:movie_id', wrapAsync(getMovieByIdController))
+staffRouter.get('/movies/:movie_id', wrapAsync(staffGetMyMovieByIdController))
 
 /**
- * Description: Update movie
+ * Description: Update my movie (Cập nhật movie của mình)
  * Path: /staff/movies/:movie_id
  * Method: PUT
  * Header: { Authorization: Bearer <access_token> }
  * Body: UpdateMovieReqBody
  */
-staffRouter.put('/movies/:movie_id', wrapAsync(updateMovieController))
+staffRouter.put('/movies/:movie_id', wrapAsync(staffUpdateMyMovieController))
 
 /**
- * Description: Delete movie
+ * Description: Delete my movie (Xóa movie của mình)
  * Path: /staff/movies/:movie_id
  * Method: DELETE
  * Header: { Authorization: Bearer <access_token> }
  */
-staffRouter.delete('/movies/:movie_id', wrapAsync(deleteMovieController))
+staffRouter.delete('/movies/:movie_id', wrapAsync(staffDeleteMyMovieController))
+
+/**
+ * Description: Get ratings for my movie (Xem ratings của movie mình tạo)
+ * Path: /staff/movies/:movie_id/ratings
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ * Query: page, limit
+ */
+staffRouter.get('/movies/:movie_id/ratings', wrapAsync(staffGetMyMovieRatingsController))
+
+/**
+ * Description: Get feedbacks for my movie (Xem feedbacks của movie mình tạo)
+ * Path: /staff/movies/:movie_id/feedbacks
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ * Query: page, limit, include_all
+ */
+staffRouter.get('/movies/:movie_id/feedbacks', wrapAsync(staffGetMyMovieFeedbacksController))
+
+/**
+ * Description: Get my movie statistics (Thống kê movies của mình)
+ * Path: /staff/movies/stats
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+staffRouter.get('/movies/stats', wrapAsync(staffGetMyMovieStatsController))
+
+/**
+ * Description: Get my top rated movies (Top movies có rating cao nhất của mình)
+ * Path: /staff/movies/top-rated
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ * Query: limit (default: 5)
+ */
+staffRouter.get('/movies/top-rated', wrapAsync(staffGetMyTopRatedMoviesController))
 
 /**
  * =============================================================================
- * SHOWTIME MANAGEMENT
+ * SHOWTIME MANAGEMENT (Staff chỉ quản lý showtimes cho movies của mình)
  * =============================================================================
  */
 
 /**
- * Description: Create showtime for my theater
+ * Description: Create showtime for my movie
  * Path: /staff/showtimes
  * Method: POST
  * Header: { Authorization: Bearer <access_token> }
  * Body: CreateShowtimeReqBody
  */
-staffRouter.post('/showtimes', wrapAsync(createShowtimeController))
+staffRouter.post('/showtimes', wrapAsync(staffCreateShowtimeController))
 
 /**
- * Description: Get showtimes for my theater
+ * Description: Get showtimes for my movies
  * Path: /staff/showtimes
  * Method: GET
  * Header: { Authorization: Bearer <access_token> }
  */
-staffRouter.get('/showtimes', wrapAsync(getShowtimesController))
+staffRouter.get('/showtimes', wrapAsync(staffGetMyShowtimesController))
 
 /**
- * Description: Get showtime details
+ * Description: Get my showtime details
  * Path: /staff/showtimes/:showtime_id
  * Method: GET
  * Header: { Authorization: Bearer <access_token> }
  */
-staffRouter.get('/showtimes/:showtime_id', wrapAsync(getShowtimeByIdController))
+staffRouter.get('/showtimes/:showtime_id', wrapAsync(staffGetMyShowtimeByIdController))
 
 /**
- * Description: Update showtime
+ * Description: Update my showtime
  * Path: /staff/showtimes/:showtime_id
  * Method: PUT
  * Header: { Authorization: Bearer <access_token> }
  * Body: UpdateShowtimeReqBody
  */
-staffRouter.put('/showtimes/:showtime_id', wrapAsync(updateShowtimeController))
+staffRouter.put('/showtimes/:showtime_id', wrapAsync(staffUpdateMyShowtimeController))
 
 /**
- * Description: Delete showtime
+ * Description: Delete my showtime
  * Path: /staff/showtimes/:showtime_id
  * Method: DELETE
  * Header: { Authorization: Bearer <access_token> }
  */
-staffRouter.delete('/showtimes/:showtime_id', wrapAsync(deleteShowtimeController))
+staffRouter.delete('/showtimes/:showtime_id', wrapAsync(staffDeleteMyShowtimeController))
 
 /**
  * =============================================================================
@@ -431,7 +472,7 @@ staffRouter.get(
               $gte: new Date(new Date().setHours(0, 0, 0, 0))
             }
           }),
-          databaseService.movies.countDocuments({}), // All movies available
+          databaseService.movies.countDocuments({ created_by: new ObjectId(user_id) }), // Movies created by this staff
           databaseService.screens.countDocuments({ theater_id: theater._id })
         ])
 
@@ -448,7 +489,7 @@ staffRouter.get(
             completed_bookings: completedBookings,
             today_bookings: todayBookings,
             total_revenue: totalRevenue[0]?.total || 0,
-            available_movies: totalMovies
+            available_movies: totalMovies // Chỉ movies mà staff này tạo
           }
         }
       })

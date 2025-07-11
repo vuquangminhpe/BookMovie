@@ -547,9 +547,9 @@
  *
  * /staff/movies:
  *   get:
- *     summary: Get movies
- *     description: Staff only - Get list of movies with filtering options
- *     tags: [Staff]
+ *     summary: Get my movies
+ *     description: Staff only - Get list of movies created by current staff with filtering options
+ *     tags: [Staff - Movie Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -583,7 +583,7 @@
  *         description: Filter by genre
  *     responses:
  *       200:
- *         description: Movies retrieved successfully
+ *         description: My movies retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -598,7 +598,19 @@
  *                     movies:
  *                       type: array
  *                       items:
- *                         $ref: '#/components/schemas/Movie'
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/Movie'
+ *                           - type: object
+ *                             properties:
+ *                               creator:
+ *                                 type: object
+ *                                 properties:
+ *                                   _id:
+ *                                     type: string
+ *                                   name:
+ *                                     type: string
+ *                                   email:
+ *                                     type: string
  *                     total:
  *                       type: integer
  *                     page:
@@ -611,9 +623,9 @@
  *         $ref: '#/components/responses/UnauthorizedError'
  *
  *   post:
- *     summary: Create movie
- *     description: Staff only - Create a new movie
- *     tags: [Staff]
+ *     summary: Create my movie
+ *     description: Staff only - Create a new movie with ownership
+ *     tags: [Staff - Movie Management]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -714,9 +726,9 @@
  *
  * /staff/movies/{movie_id}:
  *   get:
- *     summary: Get movie details
- *     description: Staff only - Get specific movie details
- *     tags: [Staff]
+ *     summary: Get my movie details
+ *     description: Staff only - Get specific movie details (must be owned by current staff)
+ *     tags: [Staff - Movie Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -738,16 +750,28 @@
  *                   type: string
  *                   example: Get movie success
  *                 result:
- *                   $ref: '#/components/schemas/Movie'
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/Movie'
+ *                     - type: object
+ *                       properties:
+ *                         creator:
+ *                           type: object
+ *                           properties:
+ *                             _id:
+ *                               type: string
+ *                             name:
+ *                               type: string
+ *                             email:
+ *                               type: string
  *       404:
- *         description: Movie not found
+ *         description: Movie not found or not owned by current staff
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *
  *   put:
- *     summary: Update movie
- *     description: Staff only - Update movie information
- *     tags: [Staff]
+ *     summary: Update my movie
+ *     description: Staff only - Update movie information (must be owned by current staff)
+ *     tags: [Staff - Movie Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -820,14 +844,14 @@
  *                     movie_id:
  *                       type: string
  *       404:
- *         description: Movie not found
+ *         description: Movie not found or not owned by current staff
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *
  *   delete:
- *     summary: Delete movie
- *     description: Staff only - Delete a movie
- *     tags: [Staff]
+ *     summary: Delete my movie
+ *     description: Staff only - Delete a movie (must be owned by current staff)
+ *     tags: [Staff - Movie Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -853,16 +877,226 @@
  *                   properties:
  *                     movie_id:
  *                       type: string
+ *       400:
+ *         description: Cannot delete movie that has associated showtimes
  *       404:
- *         description: Movie not found
+ *         description: Movie not found or not owned by current staff
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *
+ * /staff/movies/{movie_id}/ratings:
+ *   get:
+ *     summary: Get ratings for my movie
+ *     description: Staff only - Get ratings for movie owned by current staff
+ *     tags: [Staff - Movie Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: movie_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Movie ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: Movie ratings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get my movie ratings success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     ratings:
+ *                       type: array
+ *                       items:
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/Rating'
+ *                           - type: object
+ *                             properties:
+ *                               user:
+ *                                 type: object
+ *                                 properties:
+ *                                   _id:
+ *                                     type: string
+ *                                   name:
+ *                                     type: string
+ *                                   username:
+ *                                     type: string
+ *                                   avatar:
+ *                                     type: string
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *       404:
+ *         description: Movie not found or not owned by current staff
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *
+ * /staff/movies/{movie_id}/feedbacks:
+ *   get:
+ *     summary: Get feedbacks for my movie
+ *     description: Staff only - Get feedbacks for movie owned by current staff
+ *     tags: [Staff - Movie Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: movie_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Movie ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: include_all
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Include all feedback statuses (pending, approved, rejected)
+ *     responses:
+ *       200:
+ *         description: Movie feedbacks retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get my movie feedbacks success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     feedbacks:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Feedback'
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *       404:
+ *         description: Movie not found or not owned by current staff
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *
+ * /staff/movies/stats:
+ *   get:
+ *     summary: Get my movie statistics
+ *     description: Staff only - Get comprehensive statistics for movies owned by current staff
+ *     tags: [Staff - Movie Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Movie statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get my movie statistics success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     total_movies:
+ *                       type: integer
+ *                       description: Total movies created by staff
+ *                     now_showing:
+ *                       type: integer
+ *                       description: Movies currently showing
+ *                     coming_soon:
+ *                       type: integer
+ *                       description: Movies coming soon
+ *                     ended:
+ *                       type: integer
+ *                       description: Movies that have ended
+ *                     total_ratings:
+ *                       type: integer
+ *                       description: Total ratings received
+ *                     average_rating:
+ *                       type: number
+ *                       description: Average rating across all movies
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *
+ * /staff/movies/top-rated:
+ *   get:
+ *     summary: Get my top rated movies
+ *     description: Staff only - Get top rated movies owned by current staff
+ *     tags: [Staff - Movie Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Number of top movies to return
+ *     responses:
+ *       200:
+ *         description: Top rated movies retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get my top rated movies success
+ *                 result:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Movie'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *
  * /staff/showtimes:
  *   get:
- *     summary: Get showtimes for my theater
- *     description: Staff only - Get showtimes for staff's theater
- *     tags: [Staff]
+ *     summary: Get showtimes for my movies
+ *     description: Staff only - Get showtimes for movies owned by current staff
+ *     tags: [Staff - Showtime Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -882,7 +1116,7 @@
  *         name: movie_id
  *         schema:
  *           type: string
- *         description: Filter by movie ID
+ *         description: Filter by specific movie ID (must be owned by staff)
  *       - in: query
  *         name: date
  *         schema:
@@ -919,9 +1153,9 @@
  *         $ref: '#/components/responses/UnauthorizedError'
  *
  *   post:
- *     summary: Create showtime for my theater
- *     description: Staff only - Create a new showtime for staff's theater
- *     tags: [Staff]
+ *     summary: Create showtime for my movie
+ *     description: Staff only - Create a new showtime for movie owned by current staff
+ *     tags: [Staff - Showtime Management]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -941,7 +1175,7 @@
  *             properties:
  *               movie_id:
  *                 type: string
- *                 description: Movie ID
+ *                 description: Movie ID (must be owned by current staff)
  *               screen_id:
  *                 type: string
  *                 description: Screen ID
@@ -993,16 +1227,18 @@
  *                   properties:
  *                     showtime_id:
  *                       type: string
+ *       400:
+ *         description: Showtime overlap or validation error
+ *       403:
+ *         description: Movie not owned by current staff
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         description: Not authorized as staff
  *
  * /staff/showtimes/{showtime_id}:
  *   get:
- *     summary: Get showtime details
- *     description: Staff only - Get specific showtime details
- *     tags: [Staff]
+ *     summary: Get my showtime details
+ *     description: Staff only - Get specific showtime details (must be for movie owned by current staff)
+ *     tags: [Staff - Showtime Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1026,14 +1262,14 @@
  *                 result:
  *                   $ref: '#/components/schemas/Showtime'
  *       404:
- *         description: Showtime not found
+ *         description: Showtime not found or not authorized
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *
  *   put:
- *     summary: Update showtime
- *     description: Staff only - Update showtime information
- *     tags: [Staff]
+ *     summary: Update my showtime
+ *     description: Staff only - Update showtime information (must be for movie owned by current staff)
+ *     tags: [Staff - Showtime Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1093,15 +1329,19 @@
  *                   properties:
  *                     showtime_id:
  *                       type: string
+ *       400:
+ *         description: Showtime overlap or validation error
+ *       403:
+ *         description: Not authorized to update this showtime
  *       404:
  *         description: Showtime not found
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *
  *   delete:
- *     summary: Delete showtime
- *     description: Staff only - Delete a showtime
- *     tags: [Staff]
+ *     summary: Delete my showtime
+ *     description: Staff only - Delete a showtime (must be for movie owned by current staff)
+ *     tags: [Staff - Showtime Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1127,6 +1367,8 @@
  *                   properties:
  *                     showtime_id:
  *                       type: string
+ *       403:
+ *         description: Not authorized to delete this showtime
  *       404:
  *         description: Showtime not found
  *       401:
@@ -1216,7 +1458,7 @@
  * /staff/stats:
  *   get:
  *     summary: Get theater statistics
- *     description: Staff only - Get comprehensive statistics for staff's theater
+ *     description: Staff only - Get comprehensive statistics for staff's theater including movies created by staff
  *     tags: [Staff]
  *     security:
  *       - bearerAuth: []
@@ -1260,7 +1502,7 @@
  *                           description: Total revenue generated
  *                         available_movies:
  *                           type: integer
- *                           description: Number of available movies
+ *                           description: Number of movies created by this staff
  *       404:
  *         description: No theater found
  *       401:
