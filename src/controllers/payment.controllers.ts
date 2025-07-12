@@ -221,7 +221,7 @@ function generateSuccessEmailTemplate({
 
                 <!-- Booking Details -->
                 <div class="ticket-info">
-                    <h3 style="color: #007bff; margin-bottom: 15px; font-size: 18px;">📋 Thông tin đặt vé</h3>
+                    <h3 style="color: #007bff; margin-bottom: 15px; font-size: 18px;">Thông tin đặt vé</h3>
                     <div class="info-row">
                         <span class="info-label">Mã vé:</span>
                         <span class="info-value"><strong>${booking.ticket_code}</strong></span>
@@ -373,7 +373,7 @@ function generateFailedEmailTemplate({
             .info-label { font-weight: 600; color: #555; }
             .info-value { color: #333; font-weight: 500; }
             .retry-section { background: #e7f3ff; border-radius: 15px; padding: 25px; margin: 25px 0; text-align: center; }
-            .cta-button { display: inline-block; background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: 600; margin: 15px 10px; transition: transform 0.2s; }
+            .cta-button { display: inline-block; background: linear-gradient(135deg, #001affff, #0056b3); color: #000; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: 600; margin: 15px 10px; transition: transform 0.2s; }
             .cta-button:hover { transform: translateY(-2px); }
             .secondary-button { background: linear-gradient(135deg, #6c757d, #495057); }
             .footer { background: #343a40; color: white; padding: 25px; text-align: center; }
@@ -412,14 +412,14 @@ function generateFailedEmailTemplate({
 
                 <!-- Error Details -->
                 <div class="ticket-info">
-                    <h3 style="color: #dc3545; margin-bottom: 15px; font-size: 18px;">⚠️ Chi tiết lỗi</h3>
+                    <h3 style="color: #dc3545; margin-bottom: 15px; font-size: 18px;">Chi tiết lỗi</h3>
                     <div class="info-row">
                         <span class="info-label">Mã đặt vé:</span>
                         <span class="info-value">${booking.ticket_code}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Lý do:</span>
-                        <span class="info-value" style="color: #dc3545;">${reason}</span>
+                        <span class="info-value" style="color: #dc3545;">Lỗi trong quá trình thanh toán</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Thời gian:</span>
@@ -454,7 +454,7 @@ function generateFailedEmailTemplate({
 
                 <!-- Retry Section -->
                 <div class="retry-section">
-                    <h3 style="margin-bottom: 15px; color: #007bff;">🔄 Hướng dẫn tiếp theo</h3>
+                    <h3 style="margin-bottom: 15px; color: #007bff;">Hướng dẫn tiếp theo</h3>
                     <p style="margin-bottom: 20px;">
                         Bạn có thể thử thanh toán lại hoặc chọn phương thức thanh toán khác. 
                         Vé sẽ vẫn được giữ trong <strong>15 phút</strong> để bạn hoàn tất thanh toán.
@@ -471,7 +471,7 @@ function generateFailedEmailTemplate({
 
                 <!-- Support Section -->
                 <div style="background: #f8f9fa; border-radius: 10px; padding: 20px; margin-top: 25px;">
-                    <h4 style="color: #495057; margin-bottom: 15px;">🆘 Cần hỗ trợ?</h4>
+                    <h4 style="color: #495057; margin-bottom: 15px;">Cần hỗ trợ?</h4>
                     <p style="margin-bottom: 10px;">
                         Nếu bạn tiếp tục gặp sự cố, vui lòng liên hệ với chúng tôi:
                     </p>
@@ -484,7 +484,7 @@ function generateFailedEmailTemplate({
 
                 <!-- Alternative Payment Methods -->
                 <div style="background: #e8f5e8; border-radius: 10px; padding: 20px; margin-top: 25px;">
-                    <h4 style="color: #28a745; margin-bottom: 15px;">💳 Phương thức thanh toán khác</h4>
+                    <h4 style="color: #28a745; margin-bottom: 15px;">Phương thức thanh toán khác</h4>
                     <p style="margin-bottom: 10px;">Bạn có thể sử dụng:</p>
                     <ul style="padding-left: 20px; color: #28a745;">
                         <li>Thẻ tín dụng / Thẻ ghi nợ</li>
@@ -498,8 +498,8 @@ function generateFailedEmailTemplate({
             <!-- Footer -->
             <div class="footer">
                 <p><strong>MovieBooking Cinema</strong></p>
-                <p>📧 support@moviebooking.com | 📞 1900-xxxx</p>
-                <p>🌐 www.moviebooking.com</p>
+                <p>support@moviebooking.com | 1900-xxxx</p>
+                <p>www.moviebooking.com</p>
                 <p style="font-size: 12px; margin-top: 15px; opacity: 0.8;">
                     © 2025 MovieBooking Cinema. All rights reserved.
                 </p>
