@@ -63,6 +63,7 @@ import {
 import { getBookingByIdController } from '../controllers/bookings.controllers'
 import databaseService from '~/services/database.services'
 import { ObjectId } from 'bson'
+import staffMovieSearchRouter from './staff/movie-search.routes'
 
 const staffRouter = Router()
 
@@ -82,6 +83,18 @@ staffRouter.use(AccessTokenValidator, verifiedUserValidator, isStaffMiddleware)
  * Header: { Authorization: Bearer <access_token> }
  */
 staffRouter.get('/contract', wrapAsync(getMyContractController))
+
+/**
+ * =============================================================================
+ * MOVIE SEARCH FOR SHOWTIMES (Browse system movies)
+ * =============================================================================
+ */
+
+/**
+ * Mount movie search routes for staff to browse available movies
+ * Paths: /staff/movies/*
+ */
+staffRouter.use('/movies', staffMovieSearchRouter)
 
 /**
  * =============================================================================

@@ -4,3 +4,4 @@ dist/
 .env.production
 upload/
 temp/
+STAFF_MOVIE_SEARCH_API.md

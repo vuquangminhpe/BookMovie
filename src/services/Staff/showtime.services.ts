@@ -12,17 +12,42 @@ import { SHOWTIME_MESSAGES } from '../../constants/messages'
 import { BookingStatus } from '../../models/schemas/Booking.schema'
 
 class StaffShowtimeService {
-  // Staff tạo showtime cho movie của mình
+  // Staff tạo showtime cho movie trong hệ thống (không cần phải do mình tạo)
   async createShowtime(staff_id: string, payload: CreateShowtimeReqBody) {
-    // Validate movie ownership
+    // Validate movie exists in system (không cần check ownership nữa)
     const movie = await databaseService.movies.findOne({
-      _id: new ObjectId(payload.movie_id),
-      created_by: new ObjectId(staff_id)
+      _id: new ObjectId(payload.movie_id)
     })
 
     if (!movie) {
       throw new ErrorWithStatus({
-        message: 'Movie not found or you do not have permission to create showtime for this movie',
+        message: 'Movie not found in the system',
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Validate theater belongs to this staff
+    const staffTheater = await databaseService.theaters.findOne({
+      _id: new ObjectId(payload.theater_id),
+      manager_id: new ObjectId(staff_id) // Assuming theaters have manager_id field
+    })
+
+    if (!staffTheater) {
+      throw new ErrorWithStatus({
+        message: 'Theater not found or you do not have permission to manage this theater',
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
+    // Validate screen belongs to staff's theater
+    const screen = await databaseService.screens.findOne({
+      _id: new ObjectId(payload.screen_id),
+      theater_id: new ObjectId(payload.theater_id)
+    })
+
+    if (!screen) {
+      throw new ErrorWithStatus({
+        message: 'Screen not found or does not belong to your theater',
         status: HTTP_STATUS.FORBIDDEN
       })
     }
@@ -87,7 +112,7 @@ class StaffShowtimeService {
     return { showtime_id: showtime_id.toString() }
   }
 
-  // Staff xem showtimes cho movies của mình
+  // Staff xem showtimes của theater mình quản lý (không chỉ movies mình tạo)
   async getMyShowtimes(staff_id: string, query: GetShowtimesReqQuery) {
     const {
       page = '1',
@@ -101,34 +126,35 @@ class StaffShowtimeService {
       sort_order = 'asc'
     } = query
 
-    // Get list of movies created by this staff
-    const staffMovies = await databaseService.movies
-      .find({ created_by: new ObjectId(staff_id) }, { projection: { _id: 1 } })
-      .toArray()
+    // Get theater managed by this staff
+    const staffTheater = await databaseService.theaters.findOne({
+      manager_id: new ObjectId(staff_id)
+    })
 
-    const movieIds = staffMovies.map((movie) => movie._id)
-
-    if (movieIds.length === 0) {
-      return {
-        showtimes: [],
-        total: 0,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total_pages: 0
-      }
+    if (!staffTheater) {
+      throw new ErrorWithStatus({
+        message: 'No theater found under your management',
+        status: HTTP_STATUS.NOT_FOUND
+      })
     }
 
     const filter: any = {
-      movie_id: { $in: movieIds } // Chỉ lấy showtimes của movies mà staff tạo
+      theater_id: staffTheater._id // Lấy tất cả showtimes của theater này
     }
 
     // Filter by specific movie_id if provided
-    if (movie_id && movieIds.some((id) => id.toString() === movie_id)) {
+    if (movie_id) {
       filter.movie_id = new ObjectId(movie_id)
     }
 
-    // Filter by theater_id
+    // Filter by specific theater_id if provided (must be staff's theater)
     if (theater_id) {
+      if (theater_id !== staffTheater._id.toString()) {
+        throw new ErrorWithStatus({
+          message: 'You can only view showtimes of your own theater',
+          status: HTTP_STATUS.FORBIDDEN
+        })
+      }
       filter.theater_id = new ObjectId(theater_id)
     }
 
@@ -211,7 +237,7 @@ class StaffShowtimeService {
     }
   }
 
-  // Staff xem chi tiết showtime với ownership check
+  // Staff xem chi tiết showtime với theater ownership check
   async getMyShowtimeById(staff_id: string, showtime_id: string) {
     if (!ObjectId.isValid(showtime_id)) {
       throw new ErrorWithStatus({
@@ -229,16 +255,26 @@ class StaffShowtimeService {
       })
     }
 
-    // Check if the movie belongs to this staff
-    const movie = await databaseService.movies.findOne({
-      _id: showtime.movie_id,
-      created_by: new ObjectId(staff_id)
+    // Check if the theater belongs to this staff
+    const staffTheater = await databaseService.theaters.findOne({
+      _id: showtime.theater_id,
+      manager_id: new ObjectId(staff_id)
     })
 
-    if (!movie) {
+    if (!staffTheater) {
       throw new ErrorWithStatus({
         message: 'You do not have permission to access this showtime',
         status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
+    // Get movie details (có thể không phải do staff này tạo)
+    const movie = await databaseService.movies.findOne({ _id: showtime.movie_id })
+
+    if (!movie) {
+      throw new ErrorWithStatus({
+        message: 'Movie not found',
+        status: HTTP_STATUS.NOT_FOUND
       })
     }
 
@@ -295,7 +331,7 @@ class StaffShowtimeService {
     }
   }
 
-  // Staff update showtime với ownership check
+  // Staff update showtime với theater ownership check
   async updateMyShowtime(staff_id: string, showtime_id: string, payload: UpdateShowtimeReqBody) {
     if (!ObjectId.isValid(showtime_id)) {
       throw new ErrorWithStatus({
@@ -313,13 +349,13 @@ class StaffShowtimeService {
       })
     }
 
-    // Check movie ownership
-    const movie = await databaseService.movies.findOne({
-      _id: showtime.movie_id,
-      created_by: new ObjectId(staff_id)
+    // Check theater ownership instead of movie ownership
+    const theater = await databaseService.theaters.findOne({
+      _id: showtime.theater_id,
+      manager_id: new ObjectId(staff_id)
     })
 
-    if (!movie) {
+    if (!theater) {
       throw new ErrorWithStatus({
         message: 'You do not have permission to update this showtime',
         status: HTTP_STATUS.FORBIDDEN
@@ -385,7 +421,7 @@ class StaffShowtimeService {
     return { showtime_id }
   }
 
-  // Staff delete showtime với ownership check
+  // Staff delete showtime với theater ownership check
   async deleteMyShowtime(staff_id: string, showtime_id: string) {
     if (!ObjectId.isValid(showtime_id)) {
       throw new ErrorWithStatus({
@@ -403,13 +439,13 @@ class StaffShowtimeService {
       })
     }
 
-    // Check movie ownership
-    const movie = await databaseService.movies.findOne({
-      _id: showtime.movie_id,
-      created_by: new ObjectId(staff_id)
+    // Check theater ownership instead of movie ownership
+    const theater = await databaseService.theaters.findOne({
+      _id: showtime.theater_id,
+      manager_id: new ObjectId(staff_id)
     })
 
-    if (!movie) {
+    if (!theater) {
       throw new ErrorWithStatus({
         message: 'You do not have permission to delete this showtime',
         status: HTTP_STATUS.FORBIDDEN
