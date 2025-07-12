@@ -91,6 +91,8 @@ class Queue {
       const videoPath = this.items[0]
       const idName = videoPath.replace(/\\/g, '\\\\').split('\\').pop() as string
 
+      const idNameWithoutExt = idName.split('.')[0]
+
       await databaseService.videoStatus.updateOne(
         { name: idName },
         {
@@ -107,13 +109,18 @@ class Queue {
         await encodeHLSWithMultipleVideoStreams(videoPath)
         this.items.shift()
 
-        const files = getFiles(path.resolve(UPLOAD_VIDEO_HLS_DIR, idName.split('.')[0]))
+        const hlsOutputDir = path.resolve(UPLOAD_VIDEO_HLS_DIR, idNameWithoutExt)
+
+        if (!fs.existsSync(hlsOutputDir)) {
+          throw new Error(`HLS output directory not found: ${hlsOutputDir}`)
+        }
+
+        const files = getFiles(hlsOutputDir)
         console.log(`Found ${files.length} files to upload for video: ${idName}`)
-        console.log(getFiles(path.resolve(UPLOAD_VIDEO_HLS_DIR, idName)))
 
         let m3u8Url = ''
         const filesToCleanup: string[] = []
-        console.log(`Uploading ${files} files to S3...`)
+        console.log(`Uploading ${files.length} files to S3...`)
 
         await Promise.all(
           files.map(async (filepath) => {
@@ -132,8 +139,7 @@ class Queue {
           })
         )
 
-        // Cleanup ngay sau khi upload lên S3
-        await immediateCleanup([videoPath, ...filesToCleanup])
+        await immediateCleanup([videoPath, hlsOutputDir, ...filesToCleanup])
 
         await databaseService.videoStatus.updateOne(
           { name: idName },
@@ -158,8 +164,9 @@ class Queue {
           }
         }
       } catch (error) {
-        // Cleanup on error
-        await immediateCleanup([videoPath])
+        // Enhanced error cleanup
+        const hlsOutputDir = path.resolve(UPLOAD_VIDEO_HLS_DIR, idNameWithoutExt)
+        await immediateCleanup([videoPath, hlsOutputDir])
 
         await databaseService.videoStatus
           .updateOne(
@@ -176,6 +183,7 @@ class Queue {
           .catch((err) => {
             console.log('Update video status error', err)
           })
+
         console.error(`❌ Encode video ${videoPath} error`, error)
         if (onError) onError(error)
       }

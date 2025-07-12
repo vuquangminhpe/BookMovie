@@ -1,7 +1,7 @@
 import path from 'path'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-
+import fs from 'fs'
 const execFileAsync = promisify(execFile)
 
 const MAXIMUM_BITRATE_720P = 5 * 10 ** 6 // 5Mbps
@@ -285,10 +285,13 @@ const encodeMaxOriginal = async (params: EncodeByResolution) => {
 
 export const encodeHLSWithMultipleVideoStreams = async (inputPath: string): Promise<boolean> => {
   const [bitrate, resolution] = await Promise.all([getBitrate(inputPath), getResolution(inputPath)])
-  const parent_folder = path.join(inputPath, '..')
-  const outputSegmentPath = path.join(parent_folder, 'v%v/fileSequence%d.ts')
-  const outputPath = path.join(parent_folder, 'v%v/prog_index.m3u8')
-
+  const fileName = path.basename(inputPath, path.extname(inputPath))
+  const outputDir = path.join(path.dirname(inputPath), fileName)
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true })
+  }
+  const outputSegmentPath = path.join(outputDir, 'v%v/fileSequence%d.ts')
+  const outputPath = path.join(outputDir, 'v%v/prog_index.m3u8')
   const bitrate720 = Math.min(bitrate, MAXIMUM_BITRATE_720P)
   const bitrate1080 = Math.min(bitrate, MAXIMUM_BITRATE_1080P)
   const bitrate1440 = Math.min(bitrate, MAXIMUM_BITRATE_1440P)
