@@ -2232,7 +2232,6 @@
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *
- * components:
  *   responses:
  *     UnauthorizedError:
  *       description: Access token is missing or invalid
