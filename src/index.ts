@@ -27,6 +27,7 @@ import partnerRouter from './routes/partner.routes'
 import staffRouter from './routes/staff.routes'
 import showtimeCleanupService from './services/showtime-cleanup.services'
 import { setupSocketHandlers } from './utils/socket-handlers'
+import paymentsRouter from './routes/payment.routes'
 
 config()
 
@@ -229,7 +230,7 @@ app.use('/recommendations', recommendationRouter)
 app.use('/feedback', feedbacksRouter)
 app.use('/staff', staffRouter)
 app.use('/partners', partnerRouter)
-
+app.use('/payments', paymentsRouter)
 // Error handling
 app.use(defaultErrorHandler)
 
