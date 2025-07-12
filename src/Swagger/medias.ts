@@ -1,10 +1,13 @@
 /**
  * @swagger
+ * tags:
+ *   name: Media
+ *   description: Media upload and management
  *
  * /medias/upload-image:
  *   post:
  *     summary: Upload image
- *     description: Upload an image file (max 300KB, formats: JPG, PNG, etc.)
+
  *     tags: [Media]
  *     security:
  *       - bearerAuth: []
