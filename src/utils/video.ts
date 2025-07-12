@@ -292,22 +292,16 @@ export const encodeHLSWithMultipleVideoStreams = async (inputPath: string): Prom
   }
 
   // ✅ Lấy thông tin file đúng cách
-  const inputDir = path.dirname(inputPath)
-  const inputBasename = path.basename(inputPath)
-  const inputNameWithoutExt = path.basename(inputPath, path.extname(inputPath))
+  const inputDir = path.dirname(inputPath) // /tmp/uploads/video-hls/56fidrXazurekrpHQ8d1E
+  const inputBasename = path.basename(inputPath) // 56fidrXazurekrpHQ8d1E
 
   console.log('📁 Input dir:', inputDir)
   console.log('📄 Input file:', inputBasename)
-  console.log('🏷️ Name without ext:', inputNameWithoutExt)
 
-  // ✅ Tạo output directory
-  const outputDir = path.join(inputDir, inputNameWithoutExt)
+  // ✅ FIXED: Output directory = input directory (cùng thư mục với file gốc)
+  const outputDir = inputDir // NOT path.join(inputDir, inputNameWithoutExt)
 
-  // ✅ Tạo thư mục output nếu chưa có
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true })
-    console.log('📁 Created output dir:', outputDir)
-  }
+  console.log('📁 Output dir:', outputDir)
 
   // ✅ Định nghĩa output paths đúng
   const outputSegmentPath = path.join(outputDir, 'v%v/fileSequence%d.ts')
@@ -322,6 +316,10 @@ export const encodeHLSWithMultipleVideoStreams = async (inputPath: string): Prom
   const bitrate1080 = Math.min(bitrate, MAXIMUM_BITRATE_1080P)
   const bitrate1440 = Math.min(bitrate, MAXIMUM_BITRATE_1440P)
   const isHasAudio = await checkVideoHasAudio(inputPath)
+
+  console.log(`🎯 Video resolution: ${resolution.width}x${resolution.height}`)
+  console.log(`🎯 Has audio: ${isHasAudio}`)
+  console.log(`🎯 Bitrates - 720p: ${bitrate720}, 1080p: ${bitrate1080}, Original: ${bitrate}`)
 
   const encodeFunc =
     resolution.height > 1440
@@ -348,6 +346,6 @@ export const encodeHLSWithMultipleVideoStreams = async (inputPath: string): Prom
     }
   })
 
-  console.log('✅ HLS encoding completed for:', inputNameWithoutExt)
+  console.log('✅ HLS encoding completed for:', inputBasename)
   return true
 }

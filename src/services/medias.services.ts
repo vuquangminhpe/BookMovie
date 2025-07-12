@@ -123,13 +123,13 @@ class Queue {
       }
 
       const fileName = path.basename(videoPath)
-      const fileNameWithoutExt = path.basename(videoPath, path.extname(videoPath))
+      const videoDir = path.dirname(videoPath) // Thư mục chứa video
 
       console.log('📄 Processing file:', fileName)
-      console.log('🏷️ Name without ext:', fileNameWithoutExt)
+      console.log('📁 Video directory:', videoDir)
 
       await databaseService.videoStatus.updateOne(
-        { name: fileName }, // ✅ Dùng fileName đầy đủ
+        { name: fileName },
         {
           $set: {
             status: EncodingStatus.Processing
@@ -141,41 +141,51 @@ class Queue {
       )
 
       try {
-        // ✅ Encode video với input path đúng
+        // ✅ Encode video
         await encodeHLSWithMultipleVideoStreams(videoPath)
         this.items.shift()
 
-        // ✅ Tìm thư mục output đúng
-        const videoDir = path.dirname(videoPath)
-        const hlsOutputDir = path.join(videoDir, fileNameWithoutExt)
+        // ✅ FIXED: HLS files nằm trong cùng thư mục với video gốc
+        const hlsOutputDir = videoDir // NOT path.join(videoDir, fileName)
 
         console.log('📁 Looking for HLS files in:', hlsOutputDir)
 
-        // ✅ Kiểm tra thư mục output tồn tại
-        if (!fs.existsSync(hlsOutputDir)) {
-          throw new Error(`HLS output directory not found: ${hlsOutputDir}`)
-        }
-
         const files = getFiles(hlsOutputDir)
-        console.log(`📦 Found ${files.length} files to upload for video: ${fileName}`)
+        console.log(`📦 Found ${files.length} files to upload`)
+
+        // ✅ Filter chỉ lấy HLS files (bỏ video gốc)
+        const hlsFiles = files.filter((filepath) => {
+          const filename = path.basename(filepath)
+          return (
+            filename.endsWith('.m3u8') ||
+            filename.endsWith('.ts') ||
+            filepath.includes('/v0/') ||
+            filepath.includes('/v1/') ||
+            filepath.includes('/v2/')
+          )
+        })
+
+        console.log(`📦 Found ${hlsFiles.length} HLS files to upload`)
 
         let m3u8Url = ''
-        const filesToCleanup: string[] = [videoPath] // ✅ Thêm video gốc vào cleanup
+        const filesToCleanup: string[] = [videoPath] // Video gốc
 
-        console.log(`☁️ Uploading ${files.length} files to S3...`)
+        console.log(`☁️ Uploading ${hlsFiles.length} HLS files to S3...`)
 
         await Promise.all(
-          files.map(async (filepath) => {
+          hlsFiles.map(async (filepath) => {
             filesToCleanup.push(filepath)
+
             // ✅ Tạo S3 filename đúng
             const relativePath = path.relative(videoDir, filepath)
-            const fileName = 'videos-hls/' + relativePath.replace(/\\/g, '/')
+            const s3FileName =
+              'videos-hls/' + path.dirname(videoPath).split('/').pop() + '/' + relativePath.replace(/\\/g, '/')
 
-            console.log(`📤 Uploading: ${relativePath} -> ${fileName}`)
+            console.log(`📤 Uploading: ${relativePath} -> ${s3FileName}`)
 
             const s3Upload = await uploadFileS3({
               filePath: filepath,
-              filename: fileName,
+              filename: s3FileName,
               contentType: mime.default.getType(filepath) as string
             })
 
@@ -187,14 +197,24 @@ class Queue {
           })
         )
 
-        // ✅ Cleanup toàn bộ
+        // ✅ Cleanup
         console.log(`🧹 Cleaning up ${filesToCleanup.length} files...`)
         await immediateCleanup(filesToCleanup)
 
-        // ✅ Cleanup thư mục HLS
-        if (fs.existsSync(hlsOutputDir)) {
-          await fs.promises.rm(hlsOutputDir, { recursive: true, force: true })
-          console.log('🗑️ Removed HLS directory:', hlsOutputDir)
+        // ✅ Cleanup HLS subdirectories (v0, v1, v2)
+        const subdirs = ['v0', 'v1', 'v2'].map((v) => path.join(videoDir, v))
+        for (const subdir of subdirs) {
+          if (fs.existsSync(subdir)) {
+            await fs.promises.rm(subdir, { recursive: true, force: true })
+            console.log('🗑️ Removed HLS subdirectory:', subdir)
+          }
+        }
+
+        // ✅ Cleanup master.m3u8 nếu còn
+        const masterM3u8 = path.join(videoDir, 'master.m3u8')
+        if (fs.existsSync(masterM3u8)) {
+          await fs.promises.unlink(masterM3u8)
+          console.log('🗑️ Removed master.m3u8')
         }
 
         await databaseService.videoStatus.updateOne(
@@ -223,13 +243,9 @@ class Queue {
         console.error(`❌ Encode video ${videoPath} error:`, error)
 
         // ✅ Enhanced cleanup on error
-        const videoDir = path.dirname(videoPath)
-        const hlsOutputDir = path.join(videoDir, fileNameWithoutExt)
         const cleanupPaths = [videoPath]
-
-        if (fs.existsSync(hlsOutputDir)) {
-          cleanupPaths.push(hlsOutputDir)
-        }
+        const subdirs = ['v0', 'v1', 'v2'].map((v) => path.join(videoDir, v))
+        cleanupPaths.push(...subdirs.filter(fs.existsSync))
 
         await immediateCleanup(cleanupPaths)
 
