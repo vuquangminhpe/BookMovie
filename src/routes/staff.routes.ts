@@ -1,3 +1,4 @@
+// src/routes/staff.routes.ts - Fixed version with proper middleware usage
 import { Router } from 'express'
 import { AccessTokenValidator, verifiedUserValidator } from '../middlewares/users.middlewares'
 import {
@@ -6,6 +7,16 @@ import {
   ownTheaterOnlyMiddleware,
   canCreateTheaterMiddleware
 } from '../middlewares/staff.middlewares'
+
+// Import staff screen middlewares (NOW PROPERLY USED)
+import {
+  validateStaffScreenOwnershipMiddleware,
+  validateStaffTheaterForScreenMiddleware,
+  createStaffScreenValidator,
+  updateStaffScreenValidator,
+  canDeleteScreenMiddleware
+} from '../middlewares/staff/screen.middlewares'
+
 import { wrapAsync } from '../utils/handler'
 
 // Import controllers
@@ -17,15 +28,17 @@ import {
   updateTheaterController
 } from '../controllers/theater.controllers'
 
+// Import staff screen controllers
 import {
-  createScreenController,
-  getScreensController,
-  getScreenByIdController,
-  updateScreenController,
-  deleteScreenController
-} from '../controllers/screen.controllers'
+  staffCreateScreenController,
+  staffGetMyTheaterScreensController,
+  staffGetMyScreenByIdController,
+  staffUpdateMyScreenController,
+  staffDeleteMyScreenController,
+  staffGetMyScreenStatsController
+} from '../controllers/staff/controllers/screen.controllers'
 
-// Import staff movie controllers riêng biệt
+// Import staff movie controllers
 import {
   staffCreateMovieController,
   staffGetMyMoviesController,
@@ -36,16 +49,16 @@ import {
   staffGetMyMovieFeedbacksController,
   staffGetMyMovieStatsController,
   staffGetMyTopRatedMoviesController
-} from '../controllers/staff/movie.controllers/movie.controllers'
+} from '../controllers/staff/controllers/movie.controllers'
 
-// Import staff showtime controllers riêng biệt
+// Import staff showtime controllers
 import {
   staffCreateShowtimeController,
   staffGetMyShowtimesController,
   staffGetMyShowtimeByIdController,
   staffUpdateMyShowtimeController,
   staffDeleteMyShowtimeController
-} from '../controllers/staff/movie.controllers/showtime.controllers'
+} from '../controllers/staff/controllers/showtime.controllers'
 
 import { getBookingByIdController } from '../controllers/bookings.controllers'
 import databaseService from '~/services/database.services'
@@ -149,7 +162,7 @@ staffRouter.get('/theater/:theater_id', ownTheaterOnlyMiddleware, wrapAsync(getT
 
 /**
  * =============================================================================
- * SCREEN MANAGEMENT (Requires valid contract + own theater)
+ * SCREEN MANAGEMENT (Using dedicated staff screen middlewares)
  * =============================================================================
  */
 
@@ -160,7 +173,12 @@ staffRouter.get('/theater/:theater_id', ownTheaterOnlyMiddleware, wrapAsync(getT
  * Header: { Authorization: Bearer <access_token> }
  * Body: CreateScreenReqBody
  */
-staffRouter.post('/theater/:theater_id/screens', ownTheaterOnlyMiddleware, wrapAsync(createScreenController))
+staffRouter.post(
+  '/theater/:theater_id/screens',
+  validateStaffTheaterForScreenMiddleware, // Validate theater ownership
+  createStaffScreenValidator, // Validate request body
+  wrapAsync(staffCreateScreenController)
+)
 
 /**
  * Description: Get screens of my theater
@@ -168,7 +186,11 @@ staffRouter.post('/theater/:theater_id/screens', ownTheaterOnlyMiddleware, wrapA
  * Method: GET
  * Header: { Authorization: Bearer <access_token> }
  */
-staffRouter.get('/theater/:theater_id/screens', ownTheaterOnlyMiddleware, wrapAsync(getScreensController))
+staffRouter.get(
+  '/theater/:theater_id/screens',
+  validateStaffTheaterForScreenMiddleware, // Validate theater ownership
+  wrapAsync(staffGetMyTheaterScreensController)
+)
 
 /**
  * Description: Get screen details
@@ -176,7 +198,11 @@ staffRouter.get('/theater/:theater_id/screens', ownTheaterOnlyMiddleware, wrapAs
  * Method: GET
  * Header: { Authorization: Bearer <access_token> }
  */
-staffRouter.get('/screens/:screen_id', wrapAsync(getScreenByIdController))
+staffRouter.get(
+  '/screens/:screen_id',
+  validateStaffScreenOwnershipMiddleware, // Validate screen ownership via theater
+  wrapAsync(staffGetMyScreenByIdController)
+)
 
 /**
  * Description: Update screen
@@ -185,7 +211,12 @@ staffRouter.get('/screens/:screen_id', wrapAsync(getScreenByIdController))
  * Header: { Authorization: Bearer <access_token> }
  * Body: UpdateScreenReqBody
  */
-staffRouter.put('/screens/:screen_id', wrapAsync(updateScreenController))
+staffRouter.put(
+  '/screens/:screen_id',
+  validateStaffScreenOwnershipMiddleware, // Validate screen ownership
+  updateStaffScreenValidator, // Validate request body
+  wrapAsync(staffUpdateMyScreenController)
+)
 
 /**
  * Description: Delete screen
@@ -193,7 +224,20 @@ staffRouter.put('/screens/:screen_id', wrapAsync(updateScreenController))
  * Method: DELETE
  * Header: { Authorization: Bearer <access_token> }
  */
-staffRouter.delete('/screens/:screen_id', wrapAsync(deleteScreenController))
+staffRouter.delete(
+  '/screens/:screen_id',
+  validateStaffScreenOwnershipMiddleware, // Validate screen ownership
+  canDeleteScreenMiddleware, // Check delete constraints
+  wrapAsync(staffDeleteMyScreenController)
+)
+
+/**
+ * Description: Get screen statistics
+ * Path: /staff/screens/stats
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+staffRouter.get('/screens/stats', wrapAsync(staffGetMyScreenStatsController))
 
 /**
  * =============================================================================
