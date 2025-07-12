@@ -544,7 +544,7 @@
  *         description: Screen not found
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
- ** /staff/screens/stats:
+ * /staff/screens/stats:
  *   get:
  *     summary: Get my screen statistics
  *     description: Staff only - Get comprehensive statistics for all screens in staff's theater
