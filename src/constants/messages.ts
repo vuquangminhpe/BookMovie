@@ -87,6 +87,7 @@ export const USERS_MESSAGES = {
 } as const
 
 export const MOVIE_MESSAGES = {
+  TITLE_ALREADY_EXISTS_IN_YOUR_MOVIES: 'Movie title already exists in your movies',
   CREATE_MOVIE_SUCCESS: 'Create movie success',
   UPDATE_MOVIE_SUCCESS: 'Update movie success',
   DELETE_MOVIE_SUCCESS: 'Delete movie success',
@@ -107,7 +108,8 @@ export const MOVIE_MESSAGES = {
   CAST_IS_REQUIRED: 'Cast is required',
   CAST_MUST_BE_AN_ARRAY: 'Cast must be an array',
   POSTER_URL_IS_REQUIRED: 'Poster URL is required',
-  INVALID_STATUS: 'Invalid status'
+  INVALID_STATUS: 'Invalid status',
+  TITLE_ALREADY_EXISTS: 'Movie title already exists'
 } as const
 
 export const THEATER_MESSAGES = {

@@ -17,7 +17,33 @@ export const createMovieValidator = validate(
         isString: {
           errorMessage: MOVIE_MESSAGES.TITLE_IS_REQUIRED
         },
-        trim: true
+        trim: true,
+        custom: {
+          options: async (value, { req }) => {
+            const { user_id: staff_id } = req.decode_authorization || {}
+
+            if (!staff_id) {
+              throw new ErrorWithStatus({
+                message: 'Unauthorized',
+                status: HTTP_STATUS.UNAUTHORIZED
+              })
+            }
+
+            const existingMovie = await databaseService.movies.findOne({
+              title: value.trim(),
+              created_by: new ObjectId(staff_id as string) // Chỉ check trong movies của staff này
+            })
+
+            if (existingMovie) {
+              throw new ErrorWithStatus({
+                message: MOVIE_MESSAGES.TITLE_ALREADY_EXISTS_IN_YOUR_MOVIES, // Thêm message mới
+                status: HTTP_STATUS.CONFLICT
+              })
+            }
+
+            return true
+          }
+        }
       },
       description: {
         notEmpty: {
