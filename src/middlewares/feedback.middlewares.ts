@@ -9,6 +9,7 @@ import { TokenPayload } from '../models/request/User.request'
 import { Request } from 'express'
 import { FeedbackStatus } from '../models/schemas/Feedback.schema'
 import { UserRole } from '../models/schemas/User.schema'
+import { BookingStatus, PaymentStatus } from '~/models/schemas/Booking.schema'
 
 export const createFeedbackValidator = validate(
   checkSchema(
@@ -18,13 +19,40 @@ export const createFeedbackValidator = validate(
           errorMessage: FEEDBACK_MESSAGES.MOVIE_ID_IS_REQUIRED
         },
         custom: {
-          options: async (value) => {
+          options: async (value, { req }) => {
+            const { user_id } = req.decode_authorization as TokenPayload
             if (!ObjectId.isValid(value)) {
               throw new ErrorWithStatus({
                 message: MOVIE_MESSAGES.INVALID_MOVIE_ID,
                 status: HTTP_STATUS.BAD_REQUEST
               })
             }
+
+            const booking = await databaseService.bookings.findOne({
+              user_id: new ObjectId(user_id),
+              movie_id: new ObjectId(value as string),
+              payment_status: PaymentStatus.COMPLETED,
+              status: BookingStatus.CONFIRMED
+            })
+
+            if (!booking) {
+              throw new ErrorWithStatus({
+                message: 'Bạn cần đặt vé và thanh toán trước khi feedback',
+                status: HTTP_STATUS.FORBIDDEN
+              })
+            }
+
+            const showtime = await databaseService.showtimes.findOne({
+              _id: booking.showtime_id
+            })
+
+            if (!showtime || showtime.end_time > new Date()) {
+              throw new ErrorWithStatus({
+                message: 'Chỉ có thể feedback sau khi suất chiếu kết thúc',
+                status: HTTP_STATUS.FORBIDDEN
+              })
+            }
+
             const movie = await databaseService.movies.findOne({ _id: new ObjectId(value) })
             if (!movie) {
               throw new ErrorWithStatus({
