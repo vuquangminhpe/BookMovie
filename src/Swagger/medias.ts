@@ -1,8 +1,5 @@
 /**
  * @swagger
- * tags:
- *   name: Media
- *   description: Media upload and management
  *
  * /medias/upload-image:
  *   post:
