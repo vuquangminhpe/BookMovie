@@ -29,16 +29,22 @@ let mime: any
 
 const isRender = process.env.RENDER === 'true' || process.env.RENDER_SERVICE_ID
 
-// Aggressive cleanup function cho Render
 const immediateCleanup = async (filePaths: string[]) => {
   const cleanupPromises = filePaths.map(async (filePath) => {
     try {
       if (fs.existsSync(filePath)) {
-        await fsPromise.unlink(filePath)
-        console.log(`🗑️ Cleaned: ${path.basename(filePath)}`)
+        const stats = fs.statSync(filePath)
+        if (stats.isDirectory()) {
+          // ✅ Cleanup thư mục recursively
+          await fs.promises.rm(filePath, { recursive: true, force: true })
+          console.log(`🗑️ Cleaned directory: ${path.basename(filePath)}`)
+        } else {
+          await fs.promises.unlink(filePath)
+          console.log(`🗑️ Cleaned file: ${path.basename(filePath)}`)
+        }
       }
     } catch (error) {
-      console.warn(`Failed to cleanup ${filePath}:`, error)
+      console.warn(`⚠️ Failed to cleanup ${filePath}:`, error)
     }
   })
 
@@ -55,26 +61,41 @@ class Queue {
 
   async enqueue(item: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.items.push(item)
-      const idName = item.replace(/\\/g, '\\\\').split('\\').pop()
-      console.log(idName)
+      // ✅ Debug input path
+      console.log('🔄 Queue received path:', item)
 
-      if (!idName || typeof idName !== 'string' || !idName.trim()) {
-        console.error('enqueue error: Invalid video file name', { item, idName })
+      // ✅ Kiểm tra file tồn tại ngay từ đầu
+      if (!fs.existsSync(item)) {
+        console.error('❌ File not found in queue:', item)
+        return reject(new Error(`Video file not found: ${item}`))
+      }
+
+      this.items.push(item)
+
+      // ✅ Lấy tên file đúng cách
+      const fileName = path.basename(item)
+      console.log('📄 Extracted filename:', fileName)
+
+      if (!fileName || typeof fileName !== 'string' || !fileName.trim()) {
+        console.error('enqueue error: Invalid video file name', { item, fileName })
         return reject(new Error('Invalid video file name'))
       }
+
       if (typeof EncodingStatus.Pending === 'undefined') {
         console.error('enqueue error: EncodingStatus.Pending is undefined')
         return reject(new Error('EncodingStatus.Pending is undefined'))
       }
+
       const Id = new ObjectId()
       const videoStatusObj = new VideoStatus({
         _id: Id,
-        name: idName,
+        name: fileName, // ✅ Dùng fileName thay vì idName
         status: EncodingStatus.Pending
       })
-      console.log('Insert VideoStatus:', videoStatusObj)
+
+      console.log('💾 Insert VideoStatus:', videoStatusObj)
       const plainVideoStatus = JSON.parse(JSON.stringify(videoStatusObj))
+
       databaseService.videoStatus
         .insertOne(plainVideoStatus)
         .then(() => {
@@ -89,12 +110,26 @@ class Queue {
     if (this.items.length > 0) {
       this.encoding = true
       const videoPath = this.items[0]
-      const idName = videoPath.replace(/\\/g, '\\\\').split('\\').pop() as string
 
-      const idNameWithoutExt = idName.split('.')[0]
+      console.log('🎬 Processing video:', videoPath)
+
+      // ✅ Kiểm tra file input tồn tại
+      if (!fs.existsSync(videoPath)) {
+        console.error('❌ Video file not found:', videoPath)
+        const error = new Error(`Video file not found: ${videoPath}`)
+        if (onError) onError(error)
+        this.encoding = false
+        return
+      }
+
+      const fileName = path.basename(videoPath)
+      const fileNameWithoutExt = path.basename(videoPath, path.extname(videoPath))
+
+      console.log('📄 Processing file:', fileName)
+      console.log('🏷️ Name without ext:', fileNameWithoutExt)
 
       await databaseService.videoStatus.updateOne(
-        { name: idName },
+        { name: fileName }, // ✅ Dùng fileName đầy đủ
         {
           $set: {
             status: EncodingStatus.Processing
@@ -106,43 +141,64 @@ class Queue {
       )
 
       try {
+        // ✅ Encode video với input path đúng
         await encodeHLSWithMultipleVideoStreams(videoPath)
         this.items.shift()
 
-        const hlsOutputDir = path.resolve(UPLOAD_VIDEO_HLS_DIR, idNameWithoutExt)
+        // ✅ Tìm thư mục output đúng
+        const videoDir = path.dirname(videoPath)
+        const hlsOutputDir = path.join(videoDir, fileNameWithoutExt)
 
+        console.log('📁 Looking for HLS files in:', hlsOutputDir)
+
+        // ✅ Kiểm tra thư mục output tồn tại
         if (!fs.existsSync(hlsOutputDir)) {
           throw new Error(`HLS output directory not found: ${hlsOutputDir}`)
         }
 
         const files = getFiles(hlsOutputDir)
-        console.log(`Found ${files.length} files to upload for video: ${idName}`)
+        console.log(`📦 Found ${files.length} files to upload for video: ${fileName}`)
 
         let m3u8Url = ''
-        const filesToCleanup: string[] = []
-        console.log(`Uploading ${files.length} files to S3...`)
+        const filesToCleanup: string[] = [videoPath] // ✅ Thêm video gốc vào cleanup
+
+        console.log(`☁️ Uploading ${files.length} files to S3...`)
 
         await Promise.all(
           files.map(async (filepath) => {
             filesToCleanup.push(filepath)
-            const fileName = 'videos-hls/' + filepath.replace(path.resolve(UPLOAD_VIDEO_HLS_DIR), '')
+            // ✅ Tạo S3 filename đúng
+            const relativePath = path.relative(videoDir, filepath)
+            const fileName = 'videos-hls/' + relativePath.replace(/\\/g, '/')
+
+            console.log(`📤 Uploading: ${relativePath} -> ${fileName}`)
+
             const s3Upload = await uploadFileS3({
               filePath: filepath,
               filename: fileName,
               contentType: mime.default.getType(filepath) as string
             })
 
-            if (filepath.endsWith('/master.m3u8')) {
+            if (filepath.endsWith('master.m3u8')) {
               m3u8Url = (s3Upload as CompleteMultipartUploadCommandOutput).Location as string
+              console.log('🎯 Found master.m3u8 URL:', m3u8Url)
             }
             return s3Upload
           })
         )
 
-        await immediateCleanup([videoPath, hlsOutputDir, ...filesToCleanup])
+        // ✅ Cleanup toàn bộ
+        console.log(`🧹 Cleaning up ${filesToCleanup.length} files...`)
+        await immediateCleanup(filesToCleanup)
+
+        // ✅ Cleanup thư mục HLS
+        if (fs.existsSync(hlsOutputDir)) {
+          await fs.promises.rm(hlsOutputDir, { recursive: true, force: true })
+          console.log('🗑️ Removed HLS directory:', hlsOutputDir)
+        }
 
         await databaseService.videoStatus.updateOne(
-          { name: idName },
+          { name: fileName },
           {
             $set: {
               status: EncodingStatus.Success
@@ -153,8 +209,8 @@ class Queue {
           }
         )
 
-        console.log(`✅ Encoded and cleaned up video: ${idName}`)
-        console.log(`   M3U8 URL: ${m3u8Url}`)
+        console.log(`✅ Successfully encoded and uploaded: ${fileName}`)
+        console.log(`🎯 M3U8 URL: ${m3u8Url}`)
 
         if (onComplete) {
           if (m3u8Url) {
@@ -164,13 +220,22 @@ class Queue {
           }
         }
       } catch (error) {
-        // Enhanced error cleanup
-        const hlsOutputDir = path.resolve(UPLOAD_VIDEO_HLS_DIR, idNameWithoutExt)
-        await immediateCleanup([videoPath, hlsOutputDir])
+        console.error(`❌ Encode video ${videoPath} error:`, error)
+
+        // ✅ Enhanced cleanup on error
+        const videoDir = path.dirname(videoPath)
+        const hlsOutputDir = path.join(videoDir, fileNameWithoutExt)
+        const cleanupPaths = [videoPath]
+
+        if (fs.existsSync(hlsOutputDir)) {
+          cleanupPaths.push(hlsOutputDir)
+        }
+
+        await immediateCleanup(cleanupPaths)
 
         await databaseService.videoStatus
           .updateOne(
-            { name: idName },
+            { name: fileName },
             {
               $set: {
                 status: EncodingStatus.Failed
@@ -184,7 +249,6 @@ class Queue {
             console.log('Update video status error', err)
           })
 
-        console.error(`❌ Encode video ${videoPath} error`, error)
         if (onError) onError(error)
       }
 

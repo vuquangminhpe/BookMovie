@@ -284,14 +284,40 @@ const encodeMaxOriginal = async (params: EncodeByResolution) => {
 }
 
 export const encodeHLSWithMultipleVideoStreams = async (inputPath: string): Promise<boolean> => {
-  const [bitrate, resolution] = await Promise.all([getBitrate(inputPath), getResolution(inputPath)])
-  const fileName = path.basename(inputPath, path.extname(inputPath))
-  const outputDir = path.join(path.dirname(inputPath), fileName)
+  console.log('🎬 Starting HLS encoding for:', inputPath)
+
+  // ✅ Kiểm tra file input tồn tại
+  if (!fs.existsSync(inputPath)) {
+    throw new Error(`Input video file not found: ${inputPath}`)
+  }
+
+  // ✅ Lấy thông tin file đúng cách
+  const inputDir = path.dirname(inputPath)
+  const inputBasename = path.basename(inputPath)
+  const inputNameWithoutExt = path.basename(inputPath, path.extname(inputPath))
+
+  console.log('📁 Input dir:', inputDir)
+  console.log('📄 Input file:', inputBasename)
+  console.log('🏷️ Name without ext:', inputNameWithoutExt)
+
+  // ✅ Tạo output directory
+  const outputDir = path.join(inputDir, inputNameWithoutExt)
+
+  // ✅ Tạo thư mục output nếu chưa có
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true })
+    console.log('📁 Created output dir:', outputDir)
   }
+
+  // ✅ Định nghĩa output paths đúng
   const outputSegmentPath = path.join(outputDir, 'v%v/fileSequence%d.ts')
   const outputPath = path.join(outputDir, 'v%v/prog_index.m3u8')
+
+  console.log('📤 Output segment path:', outputSegmentPath)
+  console.log('📤 Output path:', outputPath)
+
+  const [bitrate, resolution] = await Promise.all([getBitrate(inputPath), getResolution(inputPath)])
+
   const bitrate720 = Math.min(bitrate, MAXIMUM_BITRATE_720P)
   const bitrate1080 = Math.min(bitrate, MAXIMUM_BITRATE_1080P)
   const bitrate1440 = Math.min(bitrate, MAXIMUM_BITRATE_1440P)
@@ -305,6 +331,8 @@ export const encodeHLSWithMultipleVideoStreams = async (inputPath: string): Prom
         : resolution.height > 720
           ? encodeMax1080
           : encodeMax720
+
+  console.log(`🎯 Using encode function for ${resolution.height}p`)
 
   await encodeFunc({
     inputPath,
@@ -320,5 +348,6 @@ export const encodeHLSWithMultipleVideoStreams = async (inputPath: string): Prom
     }
   })
 
+  console.log('✅ HLS encoding completed for:', inputNameWithoutExt)
   return true
 }
