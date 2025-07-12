@@ -544,6 +544,109 @@
  *         description: Screen not found
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
+ ** /staff/screens/stats:
+ *   get:
+ *     summary: Get my screen statistics
+ *     description: Staff only - Get comprehensive statistics for all screens in staff's theater
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Screen statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get my screen statistics success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     theater_info:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           description: Theater ID
+ *                         name:
+ *                           type: string
+ *                           description: Theater name
+ *                           example: "Cinema Plus Downtown"
+ *                         location:
+ *                           type: string
+ *                           description: Theater location
+ *                           example: "Downtown District"
+ *                         max_screens:
+ *                           type: integer
+ *                           description: Maximum number of screens allowed
+ *                           example: 8
+ *                     screen_statistics:
+ *                       type: object
+ *                       properties:
+ *                         total_screens:
+ *                           type: integer
+ *                           description: Total number of screens
+ *                           example: 6
+ *                         active_screens:
+ *                           type: integer
+ *                           description: Number of active screens
+ *                           example: 5
+ *                         inactive_screens:
+ *                           type: integer
+ *                           description: Number of inactive screens
+ *                           example: 1
+ *                         maintenance_screens:
+ *                           type: integer
+ *                           description: Number of screens under maintenance
+ *                           example: 0
+ *                         total_capacity:
+ *                           type: integer
+ *                           description: Total seating capacity across all active screens
+ *                           example: 750
+ *                         screens_utilization:
+ *                           type: number
+ *                           description: Screen utilization percentage
+ *                           example: 83.33
+ *                     showtime_statistics:
+ *                       type: object
+ *                       properties:
+ *                         total_showtimes:
+ *                           type: integer
+ *                           description: Total number of showtimes across all screens
+ *                           example: 45
+ *                         upcoming_showtimes:
+ *                           type: integer
+ *                           description: Number of upcoming showtimes
+ *                           example: 12
+ *                     screen_types:
+ *                       type: object
+ *                       description: Distribution of screen types
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         standard: 4
+ *                         premium: 1
+ *                         imax: 1
+ *                         3d: 0
+ *                         4dx: 0
+ *       404:
+ *         description: No theater found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: No theater found
+ *                 result:
+ *                   type: object
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as staff
  *
  * /staff/movies:
  *   get:
