@@ -53,23 +53,23 @@ class ShowtimeCleanupService {
 
       const now = new Date()
       const results = await Promise.all([
-        this.markCompletedShowtimes(now),
+        this.updateShowtimeStatuses(now),
         this.deleteOldCompletedShowtimes(now),
         this.cancelAbandonedShowtimes(now)
       ])
 
-      const [completed, deleted, cancelled] = results
-      const totalProcessed = completed + deleted + cancelled
+      const [updated, deleted, cancelled] = results
+      const totalProcessed = updated + deleted + cancelled
 
       if (totalProcessed > 0) {
         console.log(`✅ Showtime cleanup completed:`)
-        console.log(`   - Marked as completed: ${completed}`)
+        console.log(`   - Updated statuses: ${updated}`)
         console.log(`   - Deleted old showtimes: ${deleted}`)
         console.log(`   - Cancelled abandoned: ${cancelled}`)
 
         // Emit socket event for real-time updates
         this.emitCleanupEvent({
-          completed,
+          updated,
           deleted,
           cancelled,
           timestamp: now.toISOString()
@@ -78,22 +78,55 @@ class ShowtimeCleanupService {
         console.log('🎬 No expired showtimes found')
       }
 
-      return { completed, deleted, cancelled }
+      return { updated, deleted, cancelled }
     } catch (error) {
       console.error('❌ Showtime cleanup error:', error)
       throw error
     }
   }
 
-  // Mark ended showtimes as completed
-  private async markCompletedShowtimes(now: Date): Promise<number> {
+  // Update showtime statuses based on current time
+  private async updateShowtimeStatuses(now: Date): Promise<number> {
     try {
-      const result = await databaseService.showtimes.updateMany(
+      let totalUpdated = 0
+
+      // 1. Mark SCHEDULED as BOOKING_OPEN (booking opens 24 hours before start_time)
+      const bookingOpenTime = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+      const openBookingResult = await databaseService.showtimes.updateMany(
+        {
+          start_time: { $lte: bookingOpenTime },
+          status: ShowtimeStatus.SCHEDULED
+        },
+        {
+          $set: {
+            status: ShowtimeStatus.BOOKING_OPEN,
+            updated_at: now
+          }
+        }
+      )
+      totalUpdated += openBookingResult.modifiedCount
+
+      // 2. Mark BOOKING_OPEN as BOOKING_CLOSED (30 minutes before start_time)
+      const bookingCloseTime = new Date(now.getTime() + 30 * 60 * 1000)
+      const closeBookingResult = await databaseService.showtimes.updateMany(
+        {
+          start_time: { $lte: bookingCloseTime },
+          status: ShowtimeStatus.BOOKING_OPEN
+        },
+        {
+          $set: {
+            status: ShowtimeStatus.BOOKING_CLOSED,
+            updated_at: now
+          }
+        }
+      )
+      totalUpdated += closeBookingResult.modifiedCount
+
+      // 3. Mark BOOKING_CLOSED as COMPLETED (after end_time)
+      const completedResult = await databaseService.showtimes.updateMany(
         {
           end_time: { $lt: now },
-          status: {
-            $in: [ShowtimeStatus.SCHEDULED, ShowtimeStatus.BOOKING_OPEN, ShowtimeStatus.BOOKING_CLOSED]
-          }
+          status: ShowtimeStatus.BOOKING_CLOSED
         },
         {
           $set: {
@@ -102,14 +135,18 @@ class ShowtimeCleanupService {
           }
         }
       )
+      totalUpdated += completedResult.modifiedCount
 
-      if (result.modifiedCount > 0) {
-        console.log(`🎯 Marked ${result.modifiedCount} showtimes as completed`)
+      if (totalUpdated > 0) {
+        console.log(`🎯 Updated ${totalUpdated} showtime statuses:`)
+        console.log(`   - Opened booking: ${openBookingResult.modifiedCount}`)
+        console.log(`   - Closed booking: ${closeBookingResult.modifiedCount}`)
+        console.log(`   - Marked completed: ${completedResult.modifiedCount}`)
       }
 
-      return result.modifiedCount
+      return totalUpdated
     } catch (error) {
-      console.error('❌ Error marking completed showtimes:', error)
+      console.error('❌ Error updating showtime statuses:', error)
       return 0
     }
   }
@@ -247,6 +284,114 @@ class ShowtimeCleanupService {
     if (this.socketIO) {
       this.socketIO.emit('showtime_cleanup', data)
       console.log('📡 Showtime cleanup event emitted via socket')
+    }
+  }
+
+  // Fix incorrect showtime statuses (repair corrupted data)
+  async fixIncorrectStatuses() {
+    try {
+      console.log('🔧 Starting to fix incorrect showtime statuses...')
+
+      const now = new Date()
+      let totalFixed = 0
+
+      // 1. Fix COMPLETED showtimes that haven't ended yet
+      const notYetEndedCompleted = await databaseService.showtimes.updateMany(
+        {
+          end_time: { $gt: now },
+          status: ShowtimeStatus.COMPLETED
+        },
+        {
+          $set: {
+            status: ShowtimeStatus.BOOKING_OPEN,
+            updated_at: now
+          }
+        }
+      )
+      totalFixed += notYetEndedCompleted.modifiedCount
+
+      // 2. Fix showtimes that should be BOOKING_CLOSED (within 30 minutes of start)
+      const shouldBeBookingClosed = new Date(now.getTime() + 30 * 60 * 1000)
+      const fixBookingClosed = await databaseService.showtimes.updateMany(
+        {
+          start_time: { $lte: shouldBeBookingClosed },
+          end_time: { $gt: now },
+          status: ShowtimeStatus.BOOKING_OPEN
+        },
+        {
+          $set: {
+            status: ShowtimeStatus.BOOKING_CLOSED,
+            updated_at: now
+          }
+        }
+      )
+      totalFixed += fixBookingClosed.modifiedCount
+
+      // 3. Fix showtimes that should be BOOKING_OPEN (within 24 hours of start)
+      const shouldBeBookingOpen = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+      const fixBookingOpen = await databaseService.showtimes.updateMany(
+        {
+          start_time: { $lte: shouldBeBookingOpen },
+          status: ShowtimeStatus.SCHEDULED
+        },
+        {
+          $set: {
+            status: ShowtimeStatus.BOOKING_OPEN,
+            updated_at: now
+          }
+        }
+      )
+      totalFixed += fixBookingOpen.modifiedCount
+
+      // 4. Fix showtimes that should be COMPLETED (already ended)
+      const fixCompleted = await databaseService.showtimes.updateMany(
+        {
+          end_time: { $lt: now },
+          status: { $ne: ShowtimeStatus.COMPLETED }
+        },
+        {
+          $set: {
+            status: ShowtimeStatus.COMPLETED,
+            updated_at: now
+          }
+        }
+      )
+      totalFixed += fixCompleted.modifiedCount
+
+      if (totalFixed > 0) {
+        console.log('✅ Fixed incorrect showtime statuses:')
+        console.log(`   - Fixed premature COMPLETED: ${notYetEndedCompleted.modifiedCount}`)
+        console.log(`   - Fixed to BOOKING_CLOSED: ${fixBookingClosed.modifiedCount}`)
+        console.log(`   - Fixed to BOOKING_OPEN: ${fixBookingOpen.modifiedCount}`)
+        console.log(`   - Fixed to COMPLETED: ${fixCompleted.modifiedCount}`)
+        console.log(`   - Total fixed: ${totalFixed}`)
+
+        // Emit socket event for the fix
+        this.emitCleanupEvent({
+          type: 'status_fix',
+          fixed: totalFixed,
+          details: {
+            premature_completed: notYetEndedCompleted.modifiedCount,
+            booking_closed: fixBookingClosed.modifiedCount,
+            booking_open: fixBookingOpen.modifiedCount,
+            completed: fixCompleted.modifiedCount
+          },
+          timestamp: now.toISOString()
+        })
+      } else {
+        console.log('✅ No incorrect statuses found to fix')
+      }
+
+      return {
+        total_fixed: totalFixed,
+        premature_completed: notYetEndedCompleted.modifiedCount,
+        booking_closed: fixBookingClosed.modifiedCount,
+        booking_open: fixBookingOpen.modifiedCount,
+        completed: fixCompleted.modifiedCount
+      }
+    } catch (error) {
+      console.error('❌ Error fixing incorrect statuses:', error)
+      throw error
     }
   }
 
