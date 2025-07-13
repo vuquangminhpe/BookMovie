@@ -42,27 +42,51 @@ class FeedbackService {
       sort_order = 'desc'
     } = query
 
+    console.log('🔍 getFeedbacks query:', query)
+
     const filter: any = {}
 
     // Filter by movie_id
     if (movie_id) {
-      filter.movie_id = new ObjectId(movie_id)
+      try {
+        filter.movie_id = new ObjectId(movie_id)
+        console.log('✅ movie_id filter added:', filter.movie_id)
+      } catch (error) {
+        console.error('❌ Invalid movie_id format:', movie_id)
+        throw new ErrorWithStatus({
+          message: 'Invalid movie_id format',
+          status: HTTP_STATUS.BAD_REQUEST
+        })
+      }
     }
 
     // Filter by user_id
     if (user_id) {
-      filter.user_id = new ObjectId(user_id)
+      try {
+        filter.user_id = new ObjectId(user_id)
+        console.log('✅ user_id filter added:', filter.user_id)
+      } catch (error) {
+        console.error('❌ Invalid user_id format:', user_id)
+        throw new ErrorWithStatus({
+          message: 'Invalid user_id format',
+          status: HTTP_STATUS.BAD_REQUEST
+        })
+      }
     }
 
     // Filter by status
     if (status && Object.values(FeedbackStatus).includes(status as FeedbackStatus)) {
       filter.status = status
+      console.log('✅ status filter added:', filter.status)
     }
 
     // Search in title and content
     if (search) {
       filter.$or = [{ title: { $regex: search, $options: 'i' } }, { content: { $regex: search, $options: 'i' } }]
+      console.log('✅ search filter added:', filter.$or)
     }
+
+    console.log('🔍 Final filter:', JSON.stringify(filter, null, 2))
 
     // Convert page and limit to numbers
     const pageNum = parseInt(page)
@@ -73,11 +97,16 @@ class FeedbackService {
     const sortObj: any = {}
     sortObj[sort_by] = sort_order === 'asc' ? 1 : -1
 
+    console.log('📊 Pagination - page:', pageNum, 'limit:', limitNum, 'skip:', skip)
+    console.log('🔄 Sort:', sortObj)
+
     // Get total count of feedbacks matching the filter
     const totalFeedbacks = await databaseService.feedbacks.countDocuments(filter)
+    console.log('📈 Total feedbacks matching filter:', totalFeedbacks)
 
     // Get feedbacks with pagination
     const feedbacks = await databaseService.feedbacks.find(filter).sort(sortObj).skip(skip).limit(limitNum).toArray()
+    console.log('📋 Feedbacks found:', feedbacks.length)
 
     // Enhance feedbacks with user and movie details
     const enhancedFeedbacks = await Promise.all(
