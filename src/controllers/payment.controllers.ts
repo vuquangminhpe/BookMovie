@@ -557,7 +557,8 @@ export const sepayPaymentCallbackController = async (req: Request, res: Response
       })
     }
 
-    const ticketCode = sepayData.content.trim()
+    const ticketCode_Split = sepayData.content.trim().split(' ')[2]
+    const ticketCode = ticketCode_Split.split('-')[0]
     const transferAmount = sepayData.transferAmount
     const transactionId = sepayData.referenceCode || sepayData.id
 
