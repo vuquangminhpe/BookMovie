@@ -2189,4 +2189,113 @@
  *         description: Not authorized as admin
  *       404:
  *         description: Ticket not found
+ *
+ * /admin/bookings/{booking_id}/send-success-email:
+ *   post:
+ *     summary: Send payment success email
+ *     description: Admin only - Send payment success confirmation email to customer for a specific booking
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: booking_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     responses:
+ *       200:
+ *         description: Payment success email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Payment success email sent successfully
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Payment success email sent successfully
+ *                     booking_id:
+ *                       type: string
+ *                       description: The booking ID
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                       description: Customer email address
+ *       400:
+ *         description: Invalid booking ID
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: Booking not found, payment not found, or required booking details missing
+ *       500:
+ *         description: Failed to send email
+ *
+ * /admin/bookings/{booking_id}/send-failed-email:
+ *   post:
+ *     summary: Send payment failed email
+ *     description: Admin only - Send payment failure notification email to customer for a specific booking
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: booking_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               failure_reason:
+ *                 type: string
+ *                 description: Reason for payment failure
+ *                 default: Payment processing failed
+ *                 example: Insufficient funds in your account
+ *     responses:
+ *       200:
+ *         description: Payment failed email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Payment failed email sent successfully
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Payment failed email sent successfully
+ *                     booking_id:
+ *                       type: string
+ *                       description: The booking ID
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                       description: Customer email address
+ *       400:
+ *         description: Invalid booking ID
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: Booking not found, payment not found, or user not found
+ *       500:
+ *         description: Failed to send email
  */

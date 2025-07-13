@@ -14,6 +14,7 @@ import { UserRole } from '../models/schemas/User.schema'
 import { UserVerifyStatus } from '../constants/enums'
 import { FeedbackStatus } from '../models/schemas/Feedback.schema'
 import { BookingStatus, PaymentStatus } from '../models/schemas/Booking.schema'
+import { sendPaymentSuccessEmail, sendPaymentFailedEmail } from '../utils/sendmail'
 
 class AdminService {
   // User management
@@ -311,7 +312,9 @@ class AdminService {
       totalTheaters,
       totalScreens,
       totalRatings,
-      totalFeedbacks
+      totalFeedbacks,
+      totalContracts,
+      totalStaff
     ] = await Promise.all([
       // Total users
       databaseService.users.countDocuments({}),
@@ -359,7 +362,16 @@ class AdminService {
       databaseService.ratings.countDocuments(dateFilter.$gte ? { created_at: dateFilter } : {}),
 
       // Total feedbacks
-      databaseService.feedbacks.countDocuments(dateFilter.$gte ? { created_at: dateFilter } : {})
+      databaseService.feedbacks.countDocuments(dateFilter.$gte ? { created_at: dateFilter } : {}),
+
+      // Total contracts
+      databaseService.contracts.countDocuments(dateFilter.$gte ? { created_at: dateFilter } : {}),
+
+      // Total staff (users with role = 'staff')
+      databaseService.users.countDocuments({
+        ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
+        role: UserRole.Staff
+      })
     ])
 
     // Get revenue by status
@@ -509,6 +521,10 @@ class AdminService {
         total_screens: totalScreens,
         total_ratings: totalRatings,
         total_feedbacks: totalFeedbacks
+      },
+      hr_stats: {
+        total_contracts: totalContracts,
+        total_staff: totalStaff
       },
       charts: {
         bookings_per_day: formattedBookingsPerDay
@@ -800,6 +816,150 @@ class AdminService {
     ])
 
     return { user_id, deleted: true }
+  }
+
+  // Payment Email Services
+  async sendPaymentSuccessEmailService(bookingId: string) {
+    if (!ObjectId.isValid(bookingId)) {
+      throw new ErrorWithStatus({
+        message: 'Invalid booking ID',
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    // Get booking details
+    const booking = await databaseService.bookings.findOne({ _id: new ObjectId(bookingId) })
+
+    if (!booking) {
+      throw new ErrorWithStatus({
+        message: 'Booking not found',
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Get payment details for this booking
+    const payment = await databaseService.payments.findOne({ booking_id: new ObjectId(bookingId) })
+
+    if (!payment) {
+      throw new ErrorWithStatus({
+        message: 'Payment not found for this booking',
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Get related data
+    const [user, movie, theater, showtime] = await Promise.all([
+      databaseService.users.findOne({ _id: booking.user_id }),
+      databaseService.movies.findOne({ _id: booking.movie_id }),
+      databaseService.theaters.findOne({ _id: booking.theater_id }),
+      databaseService.showtimes.findOne({ _id: booking.showtime_id })
+    ])
+
+    if (!user || !movie || !theater || !showtime) {
+      throw new ErrorWithStatus({
+        message: 'Required booking details not found',
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Format seats display
+    const seatsDisplay = booking.seats.map((seat: any) => `${seat.row}${seat.number}`).join(', ')
+
+    // Format data for email
+    const paymentData = {
+      customerName: user.name || user.email.split('@')[0],
+      transactionId: payment.transaction_id || payment._id.toString(),
+      paymentMethod: payment.payment_method,
+      amount: booking.total_amount.toLocaleString('vi-VN'),
+      paymentDate: payment.payment_time?.toLocaleDateString('vi-VN') || new Date().toLocaleDateString('vi-VN'),
+      movieTitle: movie.title,
+      theaterName: theater.name,
+      showDateTime: new Date(showtime.start_time).toLocaleString('vi-VN'),
+      seats: seatsDisplay,
+      ticketCode: booking.ticket_code
+    }
+
+    // Send email
+    const emailSent = await sendPaymentSuccessEmail(user.email, paymentData)
+
+    if (!emailSent) {
+      throw new ErrorWithStatus({
+        message: 'Failed to send payment success email',
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR
+      })
+    }
+
+    return {
+      message: 'Payment success email sent successfully',
+      booking_id: bookingId,
+      email: user.email
+    }
+  }
+
+  async sendPaymentFailedEmailService(bookingId: string, failureReason: string = 'Payment processing failed') {
+    if (!ObjectId.isValid(bookingId)) {
+      throw new ErrorWithStatus({
+        message: 'Invalid booking ID',
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    // Get booking details
+    const booking = await databaseService.bookings.findOne({ _id: new ObjectId(bookingId) })
+
+    if (!booking) {
+      throw new ErrorWithStatus({
+        message: 'Booking not found',
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Get payment details for this booking
+    const payment = await databaseService.payments.findOne({ booking_id: new ObjectId(bookingId) })
+
+    if (!payment) {
+      throw new ErrorWithStatus({
+        message: 'Payment not found for this booking',
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Get user data
+    const user = await databaseService.users.findOne({ _id: booking.user_id })
+
+    if (!user) {
+      throw new ErrorWithStatus({
+        message: 'User not found',
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Format data for email
+    const paymentData = {
+      customerName: user.name || user.email.split('@')[0],
+      transactionId: payment.transaction_id || payment._id.toString(),
+      paymentMethod: payment.payment_method,
+      amount: booking.total_amount.toLocaleString('vi-VN'),
+      attemptDate: payment.payment_time?.toLocaleDateString('vi-VN') || new Date().toLocaleDateString('vi-VN'),
+      failureReason: failureReason,
+      retryLink: `${process.env.CLIENT_URL}/payment/retry?booking_id=${bookingId}`
+    }
+
+    // Send email
+    const emailSent = await sendPaymentFailedEmail(user.email, paymentData)
+
+    if (!emailSent) {
+      throw new ErrorWithStatus({
+        message: 'Failed to send payment failed email',
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR
+      })
+    }
+
+    return {
+      message: 'Payment failed email sent successfully',
+      booking_id: bookingId,
+      email: user.email
+    }
   }
 }
 

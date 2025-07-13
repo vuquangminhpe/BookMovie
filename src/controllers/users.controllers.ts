@@ -308,8 +308,11 @@ export const changePasswordController = async (
 
   const { password } = user as User
   const isVerifyPasswords = verifyPassword(old_password, password)
-  if (isVerifyPasswords) {
-    res.json({ message: USERS_MESSAGES.OLD_PASSWORD_IS_WRONG })
+  if (!isVerifyPasswords) {
+    return new ErrorWithStatus({
+      status: HTTP_STATUS.UNAUTHORIZED,
+      message: USERS_MESSAGES.OLD_PASSWORD_IS_WRONG
+    })
   }
   const result = await usersService.changePassword(user_id, new_password)
   res.json(result)

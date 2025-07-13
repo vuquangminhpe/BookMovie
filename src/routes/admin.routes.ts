@@ -26,7 +26,9 @@ import {
   moderateRatingController,
   unbanUserController,
   updateMovieFeatureStatusController,
-  updateUserRoleController
+  updateUserRoleController,
+  sendPaymentSuccessEmailController,
+  sendPaymentFailedEmailController
 } from '../controllers/admin.controllers'
 
 // Contract controllers
@@ -255,5 +257,28 @@ adminRouter.delete('/coupons/:coupon_id', wrapAsync(deleteCouponController))
  * =============================================================================
  */
 adminRouter.post('/verify-ticket', wrapAsync(verifyTicketQRController))
+
+/**
+ * =============================================================================
+ * PAYMENT EMAIL MANAGEMENT
+ * =============================================================================
+ */
+
+/**
+ * Description: Send payment success email to customer
+ * Path: /admin/bookings/:booking_id/send-success-email
+ * Method: POST
+ * Header: { Authorization: Bearer <access_token> }
+ */
+adminRouter.post('/bookings/:booking_id/send-success-email', wrapAsync(sendPaymentSuccessEmailController))
+
+/**
+ * Description: Send payment failed email to customer
+ * Path: /admin/bookings/:booking_id/send-failed-email
+ * Method: POST
+ * Header: { Authorization: Bearer <access_token> }
+ * Body: { failure_reason?: string }
+ */
+adminRouter.post('/bookings/:booking_id/send-failed-email', wrapAsync(sendPaymentFailedEmailController))
 
 export default adminRouter

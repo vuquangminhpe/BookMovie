@@ -675,3 +675,25 @@ export const adminDeleteUserController = async (req: Request<UserIdReqParams>, r
     result
   })
 }
+
+// Payment Email Controllers
+export const sendPaymentSuccessEmailController = async (req: Request, res: Response) => {
+  const { booking_id } = req.params
+
+  const result = await adminService.sendPaymentSuccessEmailService(booking_id)
+  res.json({
+    message: 'Payment success email sent successfully',
+    result
+  })
+}
+
+export const sendPaymentFailedEmailController = async (req: Request, res: Response) => {
+  const { booking_id } = req.params
+  const { failure_reason } = req.body
+
+  const result = await adminService.sendPaymentFailedEmailService(booking_id, failure_reason)
+  res.json({
+    message: 'Payment failed email sent successfully',
+    result
+  })
+}
