@@ -86,11 +86,14 @@ class SeatLockService {
       })
       .toArray()
 
-    const lockedSeats: Array<{ row: string; number: number; expires_at: Date }> = []
+    const lockedSeats: Array<{ user_id: string; showtime_id: string; row: string; number: number; expires_at: Date }> =
+      []
 
     locks.forEach((lock) => {
       lock.seats.forEach((seat) => {
         lockedSeats.push({
+          user_id: lock.user_id.toString(),
+          showtime_id: lock.showtime_id.toString(),
           row: seat.row,
           number: seat.number,
           expires_at: lock.expires_at
