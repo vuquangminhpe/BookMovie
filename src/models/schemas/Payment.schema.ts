@@ -27,7 +27,8 @@ export enum PaymentMethod {
   UPI = 'upi',
   WALLET = 'wallet',
   CASH = 'cash',
-  VNPAY = 'vnpay'
+  VNPAY = 'vnpay',
+  SEPAY = 'sepay'
 }
 
 export default class Payment {

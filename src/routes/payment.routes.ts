@@ -4,7 +4,8 @@ import {
   getMyPaymentsController,
   getPaymentByIdController,
   updatePaymentStatusController,
-  vnpayPaymentCallbackController
+  vnpayPaymentCallbackController,
+  sepayPaymentCallbackController
 } from '../controllers/payment.controllers'
 import { AccessTokenValidator, verifiedUserValidator } from '../middlewares/users.middlewares'
 import {
@@ -27,6 +28,9 @@ paymentsRouter.post(
 
 // VNPay callback route - no auth required as it comes from VNPay
 paymentsRouter.get('/vnpay-callback', wrapAsync(vnpayPaymentCallbackController))
+
+// Sepay webhook route - no auth required as it comes from Sepay
+paymentsRouter.post('/hooks/sepay-payment', wrapAsync(sepayPaymentCallbackController))
 
 paymentsRouter.get('/my-payments', AccessTokenValidator, verifiedUserValidator, wrapAsync(getMyPaymentsController))
 

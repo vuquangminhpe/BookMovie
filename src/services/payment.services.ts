@@ -46,6 +46,9 @@ class PaymentService {
       return this.createVnpayPayment(user_id, payload)
     }
 
+    // For non-VNPay payments, auto-complete the booking
+    bookingExpirationService.clearExpirationJob(payload.booking_id)
+
     const payment_id = new ObjectId()
 
     // Get booking details

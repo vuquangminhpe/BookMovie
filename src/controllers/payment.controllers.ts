@@ -15,6 +15,7 @@ import { PaymentMethod } from '../models/schemas/Payment.schema'
 import { sendEmail } from '~/utils/sendmail'
 import databaseService from '~/services/database.services'
 import { ObjectId } from 'mongodb'
+import { BookingStatus, PaymentStatus } from '~/models/schemas/Booking.schema'
 
 export const createPaymentController = async (
   req: Request<ParamsDictionary, any, CreatePaymentReqBody>,
@@ -541,4 +542,289 @@ export const updatePaymentStatusController = async (
     message: PAYMENT_MESSAGES.UPDATE_PAYMENT_SUCCESS,
     result
   })
+}
+
+export const sepayPaymentCallbackController = async (req: Request, res: Response) => {
+  try {
+    console.log('🏦 Sepay webhook received:', req.body)
+
+    const sepayData = req.body
+
+    if (!sepayData.content || !sepayData.transferAmount || sepayData.transferType !== 'in') {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid Sepay webhook data'
+      })
+    }
+
+    const ticketCode = sepayData.content.trim()
+    const transferAmount = sepayData.transferAmount
+    const transactionId = sepayData.referenceCode || sepayData.id
+
+    const booking = await databaseService.bookings.findOne({ ticket_code: ticketCode })
+
+    if (!booking) {
+      console.error(`❌ Booking not found for ticket code: ${ticketCode}`)
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        success: false,
+        message: 'Booking not found'
+      })
+    }
+
+    if (booking.payment_status === PaymentStatus.COMPLETED) {
+      console.log(`✅ Booking ${booking._id} already paid`)
+      return res.json({
+        success: true,
+        message: 'Payment already processed'
+      })
+    }
+
+    if (transferAmount < booking.total_amount) {
+      console.error(`❌ Insufficient payment amount. Expected: ${booking.total_amount}, Received: ${transferAmount}`)
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        message: 'Insufficient payment amount'
+      })
+    }
+
+    const existingPayment = await databaseService.payments.findOne({
+      booking_id: booking._id
+    })
+
+    let payment_id: ObjectId
+
+    if (existingPayment) {
+      await databaseService.payments.updateOne(
+        { _id: existingPayment._id },
+        {
+          $set: {
+            payment_method: PaymentMethod.SEPAY,
+            transaction_id: transactionId,
+            bank_code: sepayData.gateway || '',
+            payment_time: new Date(sepayData.transactionDate),
+            status: PaymentStatus.COMPLETED,
+            updated_at: new Date()
+          }
+        }
+      )
+      payment_id = existingPayment._id
+    } else {
+      payment_id = new ObjectId()
+      await databaseService.payments.insertOne({
+        _id: payment_id,
+        booking_id: booking._id,
+        user_id: booking.user_id,
+        amount: transferAmount,
+        payment_method: PaymentMethod.SEPAY,
+        transaction_id: transactionId,
+        bank_code: sepayData.gateway || '',
+        payment_time: new Date(sepayData.transactionDate),
+        status: PaymentStatus.COMPLETED,
+        created_at: new Date(),
+        updated_at: new Date(),
+        order_id: '',
+        card_type: '',
+        admin_note: '',
+        error: '',
+        payment_url: ''
+      })
+    }
+
+    await databaseService.bookings.updateOne(
+      { _id: booking._id },
+      {
+        $set: {
+          payment_status: PaymentStatus.COMPLETED,
+          status: BookingStatus.CONFIRMED,
+          updated_at: new Date()
+        }
+      }
+    )
+
+    const [user, movie, theater, showtime, payment] = await Promise.all([
+      databaseService.users.findOne({ _id: booking.user_id }),
+      databaseService.movies.findOne({ _id: booking.movie_id }),
+      databaseService.theaters.findOne({ _id: booking.theater_id }),
+      databaseService.showtimes.findOne({ _id: booking.showtime_id }),
+      databaseService.payments.findOne({ _id: payment_id })
+    ])
+
+    if (user) {
+      const emailContent = generateSepaySuccessEmailTemplate({
+        user,
+        booking,
+        movie,
+        theater,
+        showtime,
+        payment,
+        transactionId: transactionId
+      })
+
+      const emailSubject = `Booking Confirmed - ${movie?.title || 'Movie Ticket'}`
+      await sendEmail(user.email, emailSubject, emailContent)
+    }
+
+    console.log(`✅ Sepay payment processed successfully for booking ${booking._id}`)
+
+    res.json({
+      success: true,
+      message: 'Payment processed successfully',
+      booking_id: booking._id.toString()
+    })
+  } catch (error) {
+    console.error('❌ Sepay webhook error:', error)
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Internal server error'
+    })
+  }
+}
+
+function generateSepaySuccessEmailTemplate({
+  user,
+  booking,
+  movie,
+  theater,
+  showtime,
+  payment,
+  transactionId
+}: {
+  user: any
+  booking: any
+  movie: any
+  theater: any
+  showtime: any
+  payment: any
+  transactionId: string
+}): string {
+  const showtimeDate = new Date(showtime?.start_time).toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
+  const showtimeTime = new Date(showtime?.start_time).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
+  const seatsList = booking.seats.map((seat: any) => `${seat.row}${seat.number}`).join(', ')
+
+  return `
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Xác nhận đặt vé thành công</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; }
+            .container { max-width: 600px; margin: 0 auto; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+            .header h1 { font-size: 28px; margin-bottom: 10px; }
+            .header p { opacity: 0.9; font-size: 16px; }
+            .content { padding: 30px; }
+            .success-badge { background: #28a745; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 30px; }
+            .success-badge h2 { font-size: 24px; margin-bottom: 5px; }
+            .ticket-info { background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 25px; border-left: 5px solid #007bff; }
+            .info-row { display: flex; justify-content: space-between; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+            .info-row:last-child { border-bottom: none; margin-bottom: 0; }
+            .info-label { font-weight: 600; color: #555; }
+            .info-value { color: #333; font-weight: 500; }
+            .payment-details { background: #e8f5e8; border-radius: 10px; padding: 20px; margin: 25px 0; }
+            .payment-details h3 { color: #28a745; margin-bottom: 15px; font-size: 18px; }
+            .qr-section { text-align: center; margin: 30px 0; padding: 25px; background: #f8f9fa; border-radius: 15px; }
+            .ticket-code { font-size: 24px; font-weight: bold; color: #007bff; background: white; padding: 15px; border-radius: 10px; letter-spacing: 2px; margin: 15px 0; display: inline-block; border: 2px dashed #007bff; }
+            .footer { background: #343a40; color: white; padding: 25px; text-align: center; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎬 MovieBooking Cinema</h1>
+                <p>Cảm ơn bạn đã chọn chúng tôi!</p>
+            </div>
+
+            <div class="content">
+                <div class="success-badge">
+                    <h2>Thanh toán thành công!</h2>
+                    <p>Vé của bạn đã được xác nhận</p>
+                </div>
+
+                <p style="font-size: 16px; margin-bottom: 25px;">
+                    Chào <strong>${user.name || user.email}</strong>,
+                </p>
+                <p style="margin-bottom: 25px;">
+                    Cảm ơn bạn đã đặt vé tại MovieBooking Cinema. Thanh toán qua chuyển khoản ngân hàng của bạn đã được xử lý thành công và vé đã được xác nhận.
+                </p>
+
+                <div class="ticket-info">
+                    <h3 style="color: #007bff; margin-bottom: 15px; font-size: 18px;">Thông tin đặt vé</h3>
+                    <div class="info-row">
+                        <span class="info-label">Mã vé:</span>
+                        <span class="info-value"><strong>${booking.ticket_code}</strong></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Phim:</span>
+                        <span class="info-value">${movie?.title || 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Rạp chiếu:</span>
+                        <span class="info-value">${theater?.name || 'N/A'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ngày chiếu:</span>
+                        <span class="info-value">${showtimeDate}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Giờ chiếu:</span>
+                        <span class="info-value">${showtimeTime}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ghế ngồi:</span>
+                        <span class="info-value"><strong>${seatsList}</strong></span>
+                    </div>
+                </div>
+
+                <div class="payment-details">
+                    <h3>Thông tin thanh toán</h3>
+                    <div class="info-row">
+                        <span class="info-label">Tổng tiền:</span>
+                        <span class="info-value"><strong>${booking.total_amount.toLocaleString('vi-VN')} VNĐ</strong></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Phương thức:</span>
+                        <span class="info-value">Chuyển khoản ngân hàng</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Mã giao dịch:</span>
+                        <span class="info-value">${transactionId}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Thời gian:</span>
+                        <span class="info-value">${new Date().toLocaleString('vi-VN')}</span>
+                    </div>
+                </div>
+
+                <div class="qr-section">
+                    <h3 style="margin-bottom: 15px;">Mã vé điện tử</h3>
+                    <p style="margin-bottom: 15px;">Vui lòng xuất trình mã vé này tại quầy để nhận vé</p>
+                    <div class="ticket-code">${booking.ticket_code}</div>
+                    <p style="font-size: 14px; color: #666; margin-top: 15px;">
+                        * Vui lòng đến trước giờ chiếu 15 phút để làm thủ tục nhận vé
+                    </p>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p><strong>MovieBooking Cinema</strong></p>
+                <p>support@moviebooking.com | 1900-xxxx</p>
+                <p>© 2025 MovieBooking Cinema. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `
 }
