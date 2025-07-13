@@ -73,7 +73,7 @@ export const triggerManualCleanup = async () => {
 
   const results = {
     contracts: 0,
-    showtimes: { completed: 0, deleted: 0, cancelled: 0 },
+    showtimes: { updated: 0, deleted: 0, cancelled: 0 },
     bookings: 0
   }
 
