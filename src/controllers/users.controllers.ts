@@ -34,18 +34,10 @@ export const loginController = async (req: Request<ParamsDictionary, any, LoginR
   const user_id = user._id as ObjectId
 
   const result = await usersService.login({ user_id: user_id.toString(), verify: UserVerifyStatus.Verified })
-  
-  // Tạo forgot_password_token khi đăng nhập (nếu cần thiết)
-  const loginResult = await usersService.loginWithForgotPasswordToken({ 
-    user_id: user_id.toString(), 
-    verify: UserVerifyStatus.Verified 
-  })
-  
   res.status(200).json({
     message: USERS_MESSAGES.LOGIN_SUCCESS,
     result: {
-      access_token: loginResult.access_token,
-      forgot_password_token: loginResult.forgot_password_token,
+      access_token: result,
       user
     }
   })

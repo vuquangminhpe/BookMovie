@@ -329,43 +329,6 @@ class UserService {
 
     return access_token
   }
-
-  async loginWithForgotPasswordToken({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
-    // Tạo access_token và refresh_token như login bình thường
-    const [access_token, refresh_token] = await this.signAccessAndRefreshToken({
-      user_id,
-      verify: verify
-    })
-
-    // Tạo forgot_password_token
-    const forgot_password_token = await this.forgotPasswordToken({ user_id, verify })
-
-    // Lưu refresh_token vào database
-    await databaseService.refreshToken.insertOne({
-      _id: new ObjectId(),
-      user_id: new ObjectId(user_id),
-      token: refresh_token,
-      created_at: new Date()
-    })
-
-    // Cập nhật forgot_password_token cho user
-    await databaseService.users.updateOne(
-      { _id: new ObjectId(user_id) },
-      {
-        $set: {
-          forgot_password_token
-        },
-        $currentDate: {
-          updated_at: true
-        }
-      }
-    )
-
-    return {
-      access_token,
-      forgot_password_token
-    }
-  }
   async logout(refresh_token: string) {
     await valkeyService.deleteRefreshToken(refresh_token)
 
