@@ -42,11 +42,15 @@ class PaymentService {
   async createPayment(user_id: string, payload: CreatePaymentReqBody) {
     if (payload.payment_method === PaymentMethod.VNPAY) {
       bookingExpirationService.clearExpirationJob(payload.booking_id)
-
       return this.createVnpayPayment(user_id, payload)
     }
 
-    // For non-VNPay payments, auto-complete the booking
+    if (payload.payment_method === PaymentMethod.SEPAY) {
+      bookingExpirationService.clearExpirationJob(payload.booking_id)
+      return this.createSepayPayment(user_id, payload)
+    }
+
+    // For other payment methods (credit_card, cash, etc.), auto-complete
     bookingExpirationService.clearExpirationJob(payload.booking_id)
 
     const payment_id = new ObjectId()
@@ -149,7 +153,76 @@ class PaymentService {
 
     return { payment_id: payment_id.toString() }
   }
+  async createSepayPayment(user_id: string, payload: CreatePaymentReqBody) {
+    const booking = await databaseService.bookings.findOne({
+      _id: new ObjectId(payload.booking_id)
+    })
 
+    if (!booking) {
+      throw new ErrorWithStatus({
+        message: BOOKING_MESSAGES.BOOKING_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    // Verify user owns the booking
+    if (booking.user_id.toString() !== user_id) {
+      throw new ErrorWithStatus({
+        message: 'You are not authorized to make payment for this booking',
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
+    // Check if booking already has a completed payment
+    if (booking.payment_status === PaymentStatus.COMPLETED) {
+      throw new ErrorWithStatus({
+        message: PAYMENT_MESSAGES.BOOKING_ALREADY_PAID,
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    const payment_id = new ObjectId()
+
+    // Create a PENDING payment record for Sepay
+    await databaseService.payments.insertOne(
+      new Payment({
+        _id: payment_id,
+        booking_id: new ObjectId(payload.booking_id),
+        user_id: new ObjectId(user_id),
+        amount: booking.total_amount,
+        payment_method: PaymentMethod.SEPAY,
+        order_id: booking.ticket_code, // Use ticket_code as order_id for Sepay
+        status: PaymentStatus.PENDING, // ✅ Set as PENDING, not COMPLETED
+        transaction_id: '',
+        payment_url: '',
+        bank_code: '',
+        card_type: ''
+      })
+    )
+
+    // Update booking to set payment_status as PENDING
+    await databaseService.bookings.updateOne(
+      { _id: new ObjectId(payload.booking_id) },
+      {
+        $set: {
+          payment_status: PaymentStatus.PENDING
+        },
+        $currentDate: { updated_at: true }
+      }
+    )
+
+    return {
+      payment_id: payment_id.toString(),
+      bank_info: {
+        account_number: process.env.SEPAY_ACCOUNT_NUMBER || '0123456789',
+        account_name: process.env.SEPAY_ACCOUNT_NAME || 'CONG TY TNHH MOVIEBOOKING',
+        bank_name: process.env.SEPAY_BANK_NAME || 'Ngân hàng TMCP Công Thương Việt Nam (VietinBank)',
+        branch: process.env.SEPAY_BRANCH || 'Chi nhánh TP.HCM'
+      },
+      transfer_content: booking.ticket_code,
+      amount: booking.total_amount
+    }
+  }
   async createVnpayPayment(user_id: string, payload: CreatePaymentReqBody) {
     const booking = await databaseService.bookings.findOne({
       _id: new ObjectId(payload.booking_id)
