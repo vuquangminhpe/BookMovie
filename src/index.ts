@@ -216,6 +216,33 @@ app.get('/admin/cleanup/showtimes/stats', async (req, res) => {
   }
 })
 
+// Admin endpoint để fix các showtime có status sai
+app.post('/admin/cleanup/showtimes/fix', async (req, res) => {
+  try {
+    // TODO: Add admin authentication middleware
+    const result = await showtimeCleanupService.fixIncorrectStatuses()
+
+    // Emit socket event để notify real-time
+    io.emit('admin_showtime_fix', {
+      result,
+      triggered_at: new Date().toISOString(),
+      triggered_by: 'admin_api'
+    })
+
+    res.json({
+      success: true,
+      message: 'Showtime status fix completed',
+      result
+    })
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Showtime status fix failed',
+      error: error.message
+    })
+  }
+})
+
 // Routes (giữ nguyên thứ tự cũ)
 app.use('/users', usersRouter)
 app.use('/medias', mediasRouter)
