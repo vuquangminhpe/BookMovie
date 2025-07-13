@@ -218,6 +218,136 @@ export const setupVerificationExpiration = (user_id: string, expirationTime: Dat
   }, timeUntilExpiration)
 }
 
+// HTML template for password reset link
+const passwordResetTemplate = `<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Password Reset</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f5f7fb;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        text-align: center;
+        padding: 20px 0;
+        border-bottom: 1px solid #eaeaea;
+      }
+
+      .logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: #4b7bec;
+        margin-bottom: 10px;
+      }
+
+      .content {
+        padding: 30px 20px;
+      }
+
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 20px;
+      }
+
+      .reset-button {
+        text-align: center;
+        margin: 30px 0;
+      }
+
+      .reset-link {
+        display: inline-block;
+        padding: 15px 30px;
+        background-color: #4b7bec;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+      }
+
+      .reset-link:hover {
+        background-color: #3d64d1;
+      }
+
+      .timer {
+        text-align: center;
+        color: #e74c3c;
+        font-weight: bold;
+        margin: 20px 0;
+      }
+
+      .footer {
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid #eaeaea;
+        color: #6c757d;
+        font-size: 14px;
+      }
+
+      .fallback-link {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        word-break: break-all;
+        font-size: 12px;
+        color: #6c757d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="logo">Your App Name</div>
+        <h2>Password Reset</h2>
+      </div>
+
+      <div class="content">
+        <h3 class="greeting">Hello {{name}},</h3>
+        <p>We received a request to reset your password. Click the button below to reset your password:</p>
+        
+        <div class="reset-button">
+          <a href="{{resetLink}}" class="reset-link">Reset Password</a>
+        </div>
+        
+        <div class="timer">This link will expire in 15 minutes.</div>
+        
+        <p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
+        
+        <div class="fallback-link">
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p>{{resetLink}}</p>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>© 2025 Your App Name. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>`
+
 // Send password reset code
 export const sendPasswordResetCode = async (toAddress: string, code: string): Promise<boolean> => {
   const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
@@ -228,6 +358,21 @@ export const sendPasswordResetCode = async (toAddress: string, code: string): Pr
     .replace('{{code}}', code)
     .replace('Email Verification', 'Password Reset')
     .replace('To complete your registration', 'To reset your password')
+
+  return await sendEmail(toAddress, subject, htmlBody)
+}
+
+// Send password reset link
+export const sendPasswordResetLink = async (toAddress: string, resetToken: string): Promise<boolean> => {
+  const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
+  const subject = 'Reset Your Password'
+  
+  // Tạo link reset password với token
+  const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`
+
+  const htmlBody = passwordResetTemplate
+    .replace(/{{name}}/g, name)
+    .replace(/{{resetLink}}/g, resetLink)
 
   return await sendEmail(toAddress, subject, htmlBody)
 }

@@ -10,7 +10,7 @@ import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
 import axios from 'axios'
 import { config } from 'dotenv'
-import { generateVerificationCode, sendVerificationCode, setupVerificationExpiration } from '../utils/sendmail'
+import { generateVerificationCode, sendVerificationCode, setupVerificationExpiration, sendPasswordResetLink } from '../utils/sendmail'
 import { envConfig } from '../constants/config'
 import valkeyService from './valkey.services'
 import { GoogleGenerativeAI } from '@google/generative-ai'
@@ -468,6 +468,14 @@ class UserService {
   async forgotPassword({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     const forgot_password_token = await this.forgotPasswordToken({ user_id, verify: verify })
     const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
+    
+    if (!user) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
     await databaseService.users.updateOne(
       { _id: new ObjectId(user_id) },
       {
@@ -479,7 +487,18 @@ class UserService {
         }
       }
     )
-    // verifyForgotPassword(true, user?.username as string, forgot_password_token)
+
+    // Gửi email với link reset password
+    const emailSent = await sendPasswordResetLink(user.email, forgot_password_token)
+    
+    if (!emailSent) {
+      console.error(`Failed to send password reset email to ${user.email}`)
+      throw new ErrorWithStatus({
+        message: 'Failed to send password reset email',
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR
+      })
+    }
+
     return {
       message: USERS_MESSAGES.CHECK_EMAIL_TO_RESET_PASSWORD
     }
