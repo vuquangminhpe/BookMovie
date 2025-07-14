@@ -12,56 +12,6 @@ import { SHOWTIME_MESSAGES } from '../../constants/messages'
 import { BookingStatus } from '../../models/schemas/Booking.schema'
 
 class StaffShowtimeService {
-  // Helper function to check if two time ranges overlap
-  private isTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
-    // Two time ranges overlap if:
-    // 1. start1 is before end2 AND end1 is after start2
-    return start1 < end2 && end1 > start2
-  }
-
-  // Helper function to check for overlapping showtimes
-  private async checkShowtimeOverlap(
-    screenId: ObjectId, 
-    startTime: Date, 
-    endTime: Date, 
-    excludeShowtimeId?: ObjectId
-  ): Promise<boolean> {
-    console.log('Checking overlap for:', {
-      screenId: screenId.toString(),
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      excludeShowtimeId: excludeShowtimeId?.toString()
-    })
-
-    const filter: any = {
-      screen_id: screenId,
-      status: { $ne: ShowtimeStatus.CANCELLED }
-    }
-
-    if (excludeShowtimeId) {
-      filter._id = { $ne: excludeShowtimeId }
-    }
-
-    const existingShowtimes = await databaseService.showtimes.find(filter).toArray()
-    
-    console.log('Found existing showtimes:', existingShowtimes.length)
-
-    for (const existing of existingShowtimes) {
-      console.log('Comparing with existing showtime:', {
-        id: existing._id.toString(),
-        start: existing.start_time.toISOString(),
-        end: existing.end_time.toISOString()
-      })
-
-      if (this.isTimeOverlap(startTime, endTime, existing.start_time, existing.end_time)) {
-        console.log('OVERLAP DETECTED!')
-        return true
-      }
-    }
-
-    console.log('No overlap found')
-    return false
-  }
   // Staff tạo showtime cho movie trong hệ thống
   async createShowtime(staff_id: string, payload: CreateShowtimeReqBody) {
     const movie = await databaseService.movies.findOne({
@@ -107,13 +57,33 @@ class StaffShowtimeService {
     const startTime = new Date(payload.start_time)
     const endTime = new Date(payload.end_time)
 
-    const hasOverlap = await this.checkShowtimeOverlap(
-      new ObjectId(payload.screen_id), 
-      startTime, 
-      endTime
-    )
+    const overlappingShowtime = await databaseService.showtimes.findOne({
+      screen_id: new ObjectId(payload.screen_id),
+      $or: [
+        // Existing showtime starts during our new showtime
+        {
+          start_time: {
+            $gte: startTime,
+            $lt: endTime
+          }
+        },
+        // Existing showtime ends during our new showtime
+        {
+          end_time: {
+            $gt: startTime,
+            $lte: endTime
+          }
+        },
+        // Existing showtime contains our new showtime
+        {
+          start_time: { $lte: startTime },
+          end_time: { $gte: endTime }
+        }
+      ],
+      status: { $ne: ShowtimeStatus.CANCELLED }
+    })
 
-    if (hasOverlap) {
+    if (overlappingShowtime) {
       throw new ErrorWithStatus({
         message: SHOWTIME_MESSAGES.SHOWTIME_OVERLAP,
         status: HTTP_STATUS.BAD_REQUEST
@@ -396,7 +366,6 @@ class StaffShowtimeService {
 
     const updateData: any = { ...payload }
 
-    // Convert date strings to Date objects if provided
     if (payload.start_time) {
       updateData.start_time = new Date(payload.start_time)
     }
@@ -405,19 +374,35 @@ class StaffShowtimeService {
       updateData.end_time = new Date(payload.end_time)
     }
 
-    // Check for overlaps if changing time
     if (payload.start_time || payload.end_time) {
       const startTime = payload.start_time ? new Date(payload.start_time) : showtime.start_time
       const endTime = payload.end_time ? new Date(payload.end_time) : showtime.end_time
 
-      const hasOverlap = await this.checkShowtimeOverlap(
-        showtime.screen_id, 
-        startTime, 
-        endTime, 
-        new ObjectId(showtime_id)
-      )
+      const overlappingShowtime = await databaseService.showtimes.findOne({
+        _id: { $ne: new ObjectId(showtime_id) },
+        screen_id: showtime.screen_id,
+        $or: [
+          {
+            start_time: {
+              $gte: startTime,
+              $lt: endTime
+            }
+          },
+          {
+            end_time: {
+              $gt: startTime,
+              $lte: endTime
+            }
+          },
+          {
+            start_time: { $lte: startTime },
+            end_time: { $gte: endTime }
+          }
+        ],
+        status: { $ne: ShowtimeStatus.CANCELLED }
+      })
 
-      if (hasOverlap) {
+      if (overlappingShowtime) {
         throw new ErrorWithStatus({
           message: SHOWTIME_MESSAGES.SHOWTIME_OVERLAP,
           status: HTTP_STATUS.BAD_REQUEST
