@@ -2,7 +2,7 @@ import path from 'path'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import fs from 'fs'
-const execFileAsync = promisify(execFile)
+export const execFileAsync = promisify(execFile)
 
 const MAXIMUM_BITRATE_720P = 5 * 10 ** 6 // 5Mbps
 const MAXIMUM_BITRATE_1080P = 8 * 10 ** 6 // 8Mbps
@@ -85,11 +85,11 @@ const encodeMax720 = async (params: EncodeByResolution) => {
     '-i',
     inputPath,
     '-preset',
-    'veryslow',
+    'ultrafast',
     '-g',
     '48',
     '-crf',
-    '17',
+    '23',
     '-sc_threshold',
     '0',
     '-map',

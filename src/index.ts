@@ -28,6 +28,7 @@ import staffRouter from './routes/staff.routes'
 import showtimeCleanupService from './services/showtime-cleanup.services'
 import { setupSocketHandlers } from './utils/socket-handlers'
 import paymentsRouter from './routes/payment.routes'
+import { execFileAsync } from './utils/video'
 
 config()
 
@@ -260,7 +261,14 @@ app.use('/partners', partnerRouter)
 app.use('/payments', paymentsRouter)
 // Error handling
 app.use(defaultErrorHandler)
-
+app.get('/health/ffmpeg', async (req, res) => {
+  try {
+    await execFileAsync('ffmpeg', ['-version'])
+    res.json({ ffmpeg: 'available' })
+  } catch (error) {
+    res.status(500).json({ error: 'ffmpeg not found' })
+  }
+})
 // Graceful shutdown cho Render (enhanced với cleanup services)
 const gracefulShutdown = (signal: string) => {
   console.log(`${signal} received, starting graceful shutdown...`)
