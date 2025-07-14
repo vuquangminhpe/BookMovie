@@ -61,20 +61,16 @@ class StaffShowtimeService {
       screen_id: new ObjectId(payload.screen_id),
       $or: [
         {
-          start_time: {
-            $gte: startTime,
-            $lt: endTime
-          }
-        },
-        {
-          end_time: {
-            $gt: startTime,
-            $lte: endTime
-          }
-        },
-        {
           start_time: { $lte: startTime },
+          end_time: { $gt: startTime }
+        },
+        {
+          start_time: { $lt: endTime },
           end_time: { $gte: endTime }
+        },
+        {
+          start_time: { $gte: startTime },
+          end_time: { $lte: endTime }
         }
       ],
       status: { $ne: ShowtimeStatus.CANCELLED }
