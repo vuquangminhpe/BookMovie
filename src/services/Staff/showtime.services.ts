@@ -377,21 +377,20 @@ class StaffShowtimeService {
         _id: { $ne: new ObjectId(showtime_id) },
         screen_id: showtime.screen_id,
         $or: [
-          {
-            start_time: {
-              $gte: startTime,
-              $lt: endTime
-            }
-          },
-          {
-            end_time: {
-              $gt: startTime,
-              $lte: endTime
-            }
-          },
+          // Showtime mới bắt đầu trong khoảng showtime cũ
           {
             start_time: { $lte: startTime },
+            end_time: { $gt: startTime }
+          },
+          // Showtime mới kết thúc trong khoảng showtime cũ  
+          {
+            start_time: { $lt: endTime },
             end_time: { $gte: endTime }
+          },
+          // Showtime mới bao trùm showtime cũ
+          {
+            start_time: { $gte: startTime },
+            end_time: { $lte: endTime }
           }
         ],
         status: { $ne: ShowtimeStatus.CANCELLED }
