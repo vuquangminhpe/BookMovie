@@ -75,7 +75,7 @@ class BookingService {
     }
 
     // Verify showtime hasn't started yet
-    if (showtime.start_time < new Date()) {
+    if (showtime.start_time > new Date()) {
       throw new ErrorWithStatus({
         message: BOOKING_MESSAGES.SHOWTIME_NOT_AVAILABLE,
         status: HTTP_STATUS.BAD_REQUEST

@@ -12,9 +12,8 @@ import { SHOWTIME_MESSAGES } from '../../constants/messages'
 import { BookingStatus } from '../../models/schemas/Booking.schema'
 
 class StaffShowtimeService {
-  // Staff tạo showtime cho movie trong hệ thống (không cần phải do mình tạo)
+  // Staff tạo showtime cho movie trong hệ thống
   async createShowtime(staff_id: string, payload: CreateShowtimeReqBody) {
-    // Validate movie exists in system (không cần check ownership nữa)
     const movie = await databaseService.movies.findOne({
       _id: new ObjectId(payload.movie_id)
     })
