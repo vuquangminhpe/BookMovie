@@ -424,12 +424,134 @@ staffRouter.get(
         })
       }
 
-      // Get bookings for this theater
+      // Get bookings for this theater with populated data
+      const limit = parseInt(req.query.limit as string) || 20
+      const page = parseInt(req.query.page as string) || 1
+      const skip = (page - 1) * limit
+
       const bookings = await databaseService.bookings
-        .find({ theater_id: theater._id })
-        .sort({ booking_time: -1 })
-        .limit(parseInt(req.query.limit as string) || 20)
-        .skip((parseInt(req.query.page as string) || 1 - 1) * (parseInt(req.query.limit as string) || 20))
+        .aggregate([
+          { $match: { theater_id: theater._id } },
+          { $sort: { booking_time: -1 } },
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'user_id',
+              foreignField: '_id',
+              as: 'user_info'
+            }
+          },
+          {
+            $lookup: {
+              from: 'movies',
+              localField: 'movie_id',
+              foreignField: '_id',
+              as: 'movie_info'
+            }
+          },
+          {
+            $lookup: {
+              from: 'showtimes',
+              localField: 'showtime_id',
+              foreignField: '_id',
+              as: 'showtime_info'
+            }
+          },
+          {
+            $lookup: {
+              from: 'screens',
+              localField: 'screen_id',
+              foreignField: '_id',
+              as: 'screen_info'
+            }
+          },
+          {
+            $project: {
+              _id: 1,
+              user_id: 1,
+              showtime_id: 1,
+              movie_id: 1,
+              theater_id: 1,
+              screen_id: 1,
+              seats: 1,
+              total_amount: 1,
+              booking_time: 1,
+              ticket_code: 1,
+              status: 1,
+              payment_status: 1,
+              created_at: 1,
+              updated_at: 1,
+              user_info: {
+                $arrayElemAt: [
+                  {
+                    $map: {
+                      input: '$user_info',
+                      as: 'user',
+                      in: {
+                        _id: '$$user._id',
+                        name: '$$user.name',
+                        email: '$$user.email'
+                      }
+                    }
+                  },
+                  0
+                ]
+              },
+              movie_info: {
+                $arrayElemAt: [
+                  {
+                    $map: {
+                      input: '$movie_info',
+                      as: 'movie',
+                      in: {
+                        _id: '$$movie._id',
+                        title: '$$movie.title',
+                        poster: '$$movie.poster',
+                        duration: '$$movie.duration'
+                      }
+                    }
+                  },
+                  0
+                ]
+              },
+              showtime_info: {
+                $arrayElemAt: [
+                  {
+                    $map: {
+                      input: '$showtime_info',
+                      as: 'showtime',
+                      in: {
+                        _id: '$$showtime._id',
+                        start_time: '$$showtime.start_time',
+                        end_time: '$$showtime.end_time',
+                        date: '$$showtime.date'
+                      }
+                    }
+                  },
+                  0
+                ]
+              },
+              screen_info: {
+                $arrayElemAt: [
+                  {
+                    $map: {
+                      input: '$screen_info',
+                      as: 'screen',
+                      in: {
+                        _id: '$$screen._id',
+                        name: '$$screen.name',
+                        type: '$$screen.type'
+                      }
+                    }
+                  },
+                  0
+                ]
+              }
+            }
+          }
+        ])
         .toArray()
 
       const total = await databaseService.bookings.countDocuments({
@@ -441,8 +563,8 @@ staffRouter.get(
         result: {
           bookings,
           total,
-          page: parseInt(req.query.page as string) || 1,
-          limit: parseInt(req.query.limit as string) || 20
+          page,
+          limit
         }
       })
     }

@@ -1514,7 +1514,53 @@
  *                     bookings:
  *                       type: array
  *                       items:
- *                         $ref: '#/components/schemas/Booking'
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/Booking'
+ *                           - type: object
+ *                             properties:
+ *                               user_info:
+ *                                 type: object
+ *                                 properties:
+ *                                   _id:
+ *                                     type: string
+ *                                   name:
+ *                                     type: string
+ *                                   email:
+ *                                     type: string
+ *                               movie_info:
+ *                                 type: object
+ *                                 properties:
+ *                                   _id:
+ *                                     type: string
+ *                                   title:
+ *                                     type: string
+ *                                   poster:
+ *                                     type: string
+ *                                   duration:
+ *                                     type: integer
+ *                               showtime_info:
+ *                                 type: object
+ *                                 properties:
+ *                                   _id:
+ *                                     type: string
+ *                                   start_time:
+ *                                     type: string
+ *                                     format: date-time
+ *                                   end_time:
+ *                                     type: string
+ *                                     format: date-time
+ *                                   date:
+ *                                     type: string
+ *                                     format: date
+ *                               screen_info:
+ *                                 type: object
+ *                                 properties:
+ *                                   _id:
+ *                                     type: string
+ *                                   name:
+ *                                     type: string
+ *                                   type:
+ *                                     type: string
  *                     total:
  *                       type: integer
  *                     page:
