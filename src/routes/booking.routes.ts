@@ -76,7 +76,7 @@ bookingsRouter.post(
 )
 
 bookingsRouter.post(
-  'delete/showtime/:showtime_id',
+  '/delete/showtime/:showtime_id',
   AccessTokenValidator,
   verifiedUserValidator,
   showtimeIdValidator,
