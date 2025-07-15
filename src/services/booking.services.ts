@@ -106,8 +106,10 @@ class BookingService {
       const requestedSeatIdentifiers = payload.seats.map((seat) => `${seat.row}-${seat.number}`)
 
       const conflictingSeat = requestedSeatIdentifiers.find((seatId) => bookedSeatIdentifiers.includes(seatId))
-
-      if (conflictingSeat) {
+      const isAuthorBookingSeats = await databaseService.seatLocks.findOne({
+        showtime_id: new ObjectId(payload.showtime_id as string)
+      })
+      if (conflictingSeat && isAuthorBookingSeats?.user_id.toString() !== user_id) {
         // Unlock seats nếu có conflict
         await seatLockService.unlockSeats(payload.showtime_id, user_id)
         throw new ErrorWithStatus({
