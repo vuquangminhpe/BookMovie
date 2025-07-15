@@ -6,6 +6,20 @@ class TheaterAnalyticsService {
   async getTheaterRevenueAndCustomers(theater_id: string | ObjectId) {
     const theaterObjectId = new ObjectId(theater_id)
 
+    console.log('Querying theater analytics for theater_id:', theaterObjectId)
+
+    // First, check what data exists
+    const allBookings = await databaseService.bookings
+      .find({ theater_id: theaterObjectId })
+      .toArray()
+    
+    console.log('Total bookings found:', allBookings.length)
+    console.log('Sample booking statuses:', allBookings.slice(0, 3).map(b => ({ 
+      status: b.status, 
+      payment_status: b.payment_status,
+      total_amount: b.total_amount 
+    })))
+
     const [revenueData, customerData] = await Promise.all([
       // Tính tổng doanh thu từ các booking đã hoàn thành và thanh toán
       databaseService.bookings
@@ -13,8 +27,17 @@ class TheaterAnalyticsService {
           {
             $match: {
               theater_id: theaterObjectId,
-              status: BookingStatus.COMPLETED,
-              payment_status: PaymentStatus.COMPLETED
+              // Try both string and enum values
+              $or: [
+                {
+                  status: BookingStatus.COMPLETED,
+                  payment_status: PaymentStatus.COMPLETED
+                },
+                {
+                  status: 'completed',
+                  payment_status: 'completed'
+                }
+              ]
             }
           },
           {
@@ -33,8 +56,17 @@ class TheaterAnalyticsService {
           {
             $match: {
               theater_id: theaterObjectId,
-              status: BookingStatus.COMPLETED,
-              payment_status: PaymentStatus.COMPLETED
+              // Try both string and enum values
+              $or: [
+                {
+                  status: BookingStatus.COMPLETED,
+                  payment_status: PaymentStatus.COMPLETED
+                },
+                {
+                  status: 'completed',
+                  payment_status: 'completed'
+                }
+              ]
             }
           },
           {
@@ -51,6 +83,9 @@ class TheaterAnalyticsService {
         ])
         .toArray()
     ])
+
+    console.log('Revenue data result:', revenueData)
+    console.log('Customer data result:', customerData)
 
     return {
       theater_id: theater_id.toString(),
