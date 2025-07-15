@@ -93,20 +93,20 @@ export const createBookingValidator = validate(
                 showtime_id: new ObjectId(showtime_id as string)
               })
 
-              if (existingBookings.length > 0 && isAuthorBookingSeats?.user_id !== req.decode_authorization.user_id) {
-                // Check if any of the requested seats are already booked
-                for (const booking of existingBookings) {
-                  for (const bookedSeat of booking.seats) {
-                    const seatId = `${bookedSeat.row}-${bookedSeat.number}`
-                    if (seatIdentifiers.includes(seatId)) {
-                      throw new ErrorWithStatus({
-                        message: BOOKING_MESSAGES.SEATS_ALREADY_BOOKED,
-                        status: HTTP_STATUS.BAD_REQUEST
-                      })
-                    }
-                  }
-                }
-              }
+              // if (existingBookings.length > 0 && isAuthorBookingSeats?.user_id !== req.decode_authorization.user_id) {
+              //   // Check if any of the requested seats are already booked
+              //   for (const booking of existingBookings) {
+              //     for (const bookedSeat of booking.seats) {
+              //       const seatId = `${bookedSeat.row}-${bookedSeat.number}`
+              //       if (seatIdentifiers.includes(seatId)) {
+              //         throw new ErrorWithStatus({
+              //           message: BOOKING_MESSAGES.SEATS_ALREADY_BOOKED,
+              //           status: HTTP_STATUS.BAD_REQUEST
+              //         })
+              //       }
+              //     }
+              //   }
+              // }
             }
 
             return true
