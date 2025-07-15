@@ -65,6 +65,13 @@ import databaseService from '~/services/database.services'
 import { ObjectId } from 'bson'
 import staffMovieSearchRouter from './staff/movie-search.routes'
 
+// Import theater analytics controllers
+import {
+  getMyTheaterAnalyticsController,
+  getAllTheatersAnalyticsController,
+  getTheaterAnalyticsByIdController
+} from '../controllers/staff/controllers/theater-analytics.controllers'
+
 const staffRouter = Router()
 
 // Apply authentication and staff role middleware to all routes
@@ -584,6 +591,30 @@ staffRouter.get('/bookings/:booking_id', wrapAsync(getBookingByIdController))
  * STATISTICS & REPORTS
  * =============================================================================
  */
+
+/**
+ * Description: Get my theater analytics (revenue and customers)
+ * Path: /staff/analytics/my-theater
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+staffRouter.get('/analytics/my-theater', wrapAsync(getMyTheaterAnalyticsController))
+
+/**
+ * Description: Get all theaters analytics (admin only)
+ * Path: /staff/analytics/all-theaters
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+staffRouter.get('/analytics/all-theaters', wrapAsync(getAllTheatersAnalyticsController))
+
+/**
+ * Description: Get theater analytics by ID
+ * Path: /staff/analytics/theater/:theater_id
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+staffRouter.get('/analytics/theater/:theater_id', wrapAsync(getTheaterAnalyticsByIdController))
 
 /**
  * Description: Get theater statistics

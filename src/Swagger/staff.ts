@@ -1604,6 +1604,168 @@
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *
+ * /staff/analytics/my-theater:
+ *   get:
+ *     summary: Get my theater analytics
+ *     description: Staff only - Get revenue and customer analytics for staff's theater
+ *     tags: [Staff - Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Theater analytics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get theater analytics success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     theater_info:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           description: Theater ID
+ *                         name:
+ *                           type: string
+ *                           description: Theater name
+ *                         location:
+ *                           type: string
+ *                           description: Theater location
+ *                         city:
+ *                           type: string
+ *                           description: Theater city
+ *                         address:
+ *                           type: string
+ *                           description: Theater address
+ *                         status:
+ *                           type: string
+ *                           description: Theater status
+ *                     analytics:
+ *                       type: object
+ *                       properties:
+ *                         total_revenue:
+ *                           type: number
+ *                           description: Total revenue from completed bookings
+ *                         total_bookings:
+ *                           type: integer
+ *                           description: Total number of completed bookings
+ *                         total_customers:
+ *                           type: integer
+ *                           description: Total unique customers
+ *       404:
+ *         description: No theater found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: No theater found. Please create your theater first.
+ *                 result:
+ *                   type: null
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *
+ * /staff/analytics/all-theaters:
+ *   get:
+ *     summary: Get all theaters analytics
+ *     description: Staff only - Get revenue and customer analytics for all theaters
+ *     tags: [Staff - Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All theaters analytics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get all theaters analytics success
+ *                 result:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       theater_id:
+ *                         type: string
+ *                         description: Theater ID
+ *                       theater_name:
+ *                         type: string
+ *                         description: Theater name
+ *                       theater_location:
+ *                         type: string
+ *                         description: Theater location
+ *                       theater_city:
+ *                         type: string
+ *                         description: Theater city
+ *                       manager_id:
+ *                         type: string
+ *                         description: Manager ID
+ *                       total_revenue:
+ *                         type: number
+ *                         description: Total revenue from completed bookings
+ *                       total_bookings:
+ *                         type: integer
+ *                         description: Total number of completed bookings
+ *                       total_customers:
+ *                         type: integer
+ *                         description: Total unique customers
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *
+ * /staff/analytics/theater/{theater_id}:
+ *   get:
+ *     summary: Get theater analytics by ID
+ *     description: Staff only - Get revenue and customer analytics for specific theater
+ *     tags: [Staff - Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: theater_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Theater ID
+ *     responses:
+ *       200:
+ *         description: Theater analytics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get theater analytics success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     theater_id:
+ *                       type: string
+ *                       description: Theater ID
+ *                     total_revenue:
+ *                       type: number
+ *                       description: Total revenue from completed bookings
+ *                     total_bookings:
+ *                       type: integer
+ *                       description: Total number of completed bookings
+ *                     total_customers:
+ *                       type: integer
+ *                       description: Total unique customers
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *
  * /staff/stats:
  *   get:
  *     summary: Get theater statistics
