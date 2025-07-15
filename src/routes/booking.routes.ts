@@ -75,7 +75,7 @@ bookingsRouter.post(
   wrapAsync(extendBookingExpirationController)
 )
 
-bookingsRouter.delete(
+bookingsRouter.post(
   'delete/showtime/:showtime_id',
   AccessTokenValidator,
   verifiedUserValidator,
