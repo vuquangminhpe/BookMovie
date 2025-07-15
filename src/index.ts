@@ -29,6 +29,7 @@ import showtimeCleanupService from './services/showtime-cleanup.services'
 import { setupSocketHandlers } from './utils/socket-handlers'
 import paymentsRouter from './routes/payment.routes'
 import { execFileAsync } from './utils/video'
+import bookingsRouter from './routes/booking.routes'
 
 config()
 
@@ -259,6 +260,7 @@ app.use('/feedback', feedbacksRouter)
 app.use('/staff', staffRouter)
 app.use('/partners', partnerRouter)
 app.use('/payments', paymentsRouter)
+app.use('/bookings', bookingsRouter)
 // Error handling
 app.use(defaultErrorHandler)
 app.get('/health/ffmpeg', async (req, res) => {
