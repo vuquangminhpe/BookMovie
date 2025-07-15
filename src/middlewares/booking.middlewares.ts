@@ -83,14 +83,17 @@ export const createBookingValidator = validate(
               // Find any existing bookings for this showtime with the selected seats
               const existingBookings = await databaseService.bookings
                 .find({
-                  showtime_id: new ObjectId(showtime_id),
+                  showtime_id: new ObjectId(showtime_id as string),
                   status: { $in: [BookingStatus.CONFIRMED, BookingStatus.PENDING] },
                   'seats.row': { $in: value.map((seat: any) => seat.row) },
                   'seats.number': { $in: value.map((seat: any) => seat.number) }
                 })
                 .toArray()
+              const isAuthorBookingSeats = await databaseService.seatLocks.findOne({
+                showtime_id: new ObjectId(showtime_id as string)
+              })
 
-              if (existingBookings.length > 0) {
+              if (existingBookings.length > 0 && isAuthorBookingSeats?.user_id !== req.decode_authorization.user_id) {
                 // Check if any of the requested seats are already booked
                 for (const booking of existingBookings) {
                   for (const bookedSeat of booking.seats) {
