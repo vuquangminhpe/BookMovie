@@ -202,36 +202,37 @@ export const deleteSeatLocksByShowtimeController = async (req: Request, res: Res
 
 export const deleteSeatLocksByRowAndNumberController = async (req: Request, res: Response) => {
   const { showtime_id } = req.params
-  const { seat_row, seat_number } = req.body
+  const { seats } = req.body
   const { user_id } = req.decode_authorization as TokenPayload
 
-  await databaseService.seatLocks.updateMany(
-    {
-      showtime_id: new ObjectId(showtime_id),
-      user_id: new ObjectId(user_id)
-    },
-    {
-      $pull: {
-        seats: {
-          row: seat_row,
-          number: seat_number
+  for (const seat of seats) {
+    await databaseService.seatLocks.updateMany(
+      {
+        showtime_id: new ObjectId(showtime_id),
+        user_id: new ObjectId(user_id)
+      },
+      {
+        $pull: {
+          seats: {
+            row: seat.seat_row,
+            number: seat.seat_number
+          }
         }
       }
-    }
-  )
+    )
+  }
 
-  await databaseService.seatLocks.deleteOne({
+  await databaseService.seatLocks.deleteMany({
     showtime_id: new ObjectId(showtime_id),
     user_id: new ObjectId(user_id),
     seats: { $size: 0 }
   })
 
   res.json({
-    message: 'Seat lock deleted successfully',
+    message: 'Seat locks deleted successfully',
     result: {
       showtime_id,
-      seat_row,
-      seat_number
+      deleted_seats: seats
     }
   })
 }
