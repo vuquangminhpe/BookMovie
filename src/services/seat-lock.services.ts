@@ -19,10 +19,8 @@ class SeatLockService {
         'seats.number': { $in: seats.map((s) => s.number) }
       })
       .toArray()
-    const isAuthorBookingSeats = await databaseService.seatLocks.findOne({
-      showtime_id: new ObjectId(showtime_id as string)
-    })
-    if (existingLocks.length > 0 && isAuthorBookingSeats?.user_id.toString() !== user_id) {
+
+    if (existingLocks.length > 0) {
       // Kiểm tra có ghế nào bị trùng không
       const lockedSeats: string[] = []
       existingLocks.forEach((lock) => {
