@@ -15,6 +15,7 @@ import databaseService from '~/services/database.services'
 import { ObjectId } from 'mongodb'
 import { BookingStatus, PaymentStatus } from '~/models/schemas/Booking.schema'
 import bookingExpirationService from '~/services/booking-expiration.services'
+import seatLockService from '~/services/seat-lock.services'
 
 export const createBookingController = async (
   req: Request<ParamsDictionary, any, CreateBookingReqBody>,
@@ -181,6 +182,56 @@ export const extendBookingExpirationController = async (req: Request<BookingIdRe
     result: {
       booking_id,
       extended_minutes: additional_minutes
+    }
+  })
+}
+
+export const deleteSeatLocksByShowtimeController = async (req: Request, res: Response) => {
+  const { showtime_id } = req.params
+  const { user_id } = req.decode_authorization as TokenPayload
+
+  await seatLockService.unlockSeats(showtime_id, user_id)
+
+  res.json({
+    message: 'Seat locks deleted successfully',
+    result: {
+      showtime_id
+    }
+  })
+}
+
+export const deleteSeatLocksByRowAndNumberController = async (req: Request, res: Response) => {
+  const { showtime_id } = req.params
+  const { seat_row, seat_number } = req.body
+  const { user_id } = req.decode_authorization as TokenPayload
+
+  await databaseService.seatLocks.updateMany(
+    {
+      showtime_id: new ObjectId(showtime_id),
+      user_id: new ObjectId(user_id)
+    },
+    {
+      $pull: {
+        seats: {
+          row: seat_row,
+          number: seat_number
+        }
+      }
+    }
+  )
+
+  await databaseService.seatLocks.deleteOne({
+    showtime_id: new ObjectId(showtime_id),
+    user_id: new ObjectId(user_id),
+    seats: { $size: 0 }
+  })
+
+  res.json({
+    message: 'Seat lock deleted successfully',
+    result: {
+      showtime_id,
+      seat_row,
+      seat_number
     }
   })
 }

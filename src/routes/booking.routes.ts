@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import {
   createBookingController,
+  deleteSeatLocksByRowAndNumberController,
   extendBookingExpirationController,
   getBookingByIdController,
   getBookingByTicketCodeController,
@@ -17,6 +18,7 @@ import {
   updateBookingStatusValidator
 } from '../middlewares/booking.middlewares'
 import { wrapAsync } from '../utils/handler'
+import { showtimeIdValidator } from '~/middlewares/showtime.middlewares'
 
 const bookingsRouter = Router()
 
@@ -71,5 +73,13 @@ bookingsRouter.post(
   verifiedUserValidator,
   bookingIdValidator,
   wrapAsync(extendBookingExpirationController)
+)
+
+bookingsRouter.delete(
+  'delete/showtime/:showtime_id',
+  AccessTokenValidator,
+  verifiedUserValidator,
+  showtimeIdValidator,
+  wrapAsync(deleteSeatLocksByRowAndNumberController)
 )
 export default bookingsRouter
