@@ -113,6 +113,7 @@ class SeatLockService {
         })
       })
     })
+    console.log(`Locked seats for showtime ${showtime_id}:`, lockedSeats)
 
     return lockedSeats
   }
