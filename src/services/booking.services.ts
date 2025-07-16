@@ -65,7 +65,6 @@ class BookingService {
         status: HTTP_STATUS.NOT_FOUND
       })
     }
-    console.log(showtime.status)
 
     // Verify showtime is available for booking
     if (showtime.status !== ShowtimeStatus.BOOKING_OPEN) {
@@ -138,7 +137,7 @@ class BookingService {
       const totalAmount = seatsWithPrice.reduce((total, seat) => total + seat.price, 0)
 
       // Create booking
-      const result = await databaseService.bookings.insertOne(
+      await databaseService.bookings.insertOne(
         new Booking({
           _id: booking_id,
           user_id: new ObjectId(user_id),
@@ -184,7 +183,69 @@ class BookingService {
       throw error
     }
   }
+  async updateBooking(booking_id: string, payload: CreateBookingReqBody) {
+    const booking = await databaseService.bookings.findOne({ _id: new ObjectId(booking_id) })
+    if (!booking) {
+      throw new ErrorWithStatus({
+        message: BOOKING_MESSAGES.BOOKING_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
 
+    const showtime = await databaseService.showtimes.findOne({
+      _id: new ObjectId(booking.showtime_id)
+    })
+    if (!showtime) {
+      throw new ErrorWithStatus({
+        message: BOOKING_MESSAGES.SHOWTIME_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+    const seatsWithPrice = payload.seats.map((seat) => {
+      let price = showtime.price.regular
+      if (seat.type === 'premium' && showtime.price.premium) {
+        price = showtime.price.premium
+      } else if (seat.type === 'recliner' && showtime.price.recliner) {
+        price = showtime.price.recliner
+      } else if (seat.type === 'couple' && showtime.price.couple) {
+        price = showtime.price.couple
+      }
+
+      return {
+        ...seat,
+        price
+      }
+    })
+
+    const totalAmount = seatsWithPrice.reduce((total, seat) => total + seat.price, 0)
+    await Promise.all([
+      databaseService.bookings.updateOne(
+        { _id: new ObjectId(booking_id) },
+        {
+          $set: {
+            seats: seatsWithPrice,
+            total_amount: totalAmount,
+            updated_at: new Date(),
+            status: BookingStatus.CONFIRMED,
+            payment_status: PaymentStatus.PENDING
+          }
+        }
+      ),
+      databaseService.seatLocks.updateOne(
+        {
+          showtime_id: new ObjectId(booking.showtime_id),
+          user_id: new ObjectId(booking.user_id)
+        },
+        {
+          $set: {
+            seats: seatsWithPrice.map((seat) => ({ row: seat.row, number: seat.number }))
+          }
+        }
+      )
+    ])
+
+    return this.getBookingDetails(booking_id)
+  }
   async getBookings(user_id: string, query: GetBookingsReqQuery) {
     const {
       page = '1',

@@ -1,12 +1,14 @@
 import { Server as SocketServer, Socket } from 'socket.io'
 import showtimeCleanupService from '../services/showtime-cleanup.services'
+import couponSocketService from '../services/coupon-socket.services'
 import { triggerManualCleanup, getCleanupStats } from './cleanup'
 
 export const setupSocketHandlers = (io: SocketServer) => {
   console.log('📡 Setting up socket handlers...')
 
-  // Set socket instance for showtime cleanup service
+  // Set socket instance for services
   showtimeCleanupService.setSocketIO(io)
+  couponSocketService.setSocketIO(io)
 
   io.on('connection', (socket: Socket) => {
     console.log(`🔌 Client connected: ${socket.id}`)
@@ -23,6 +25,9 @@ export const setupSocketHandlers = (io: SocketServer) => {
 
     // Handle admin cleanup events
     setupAdminCleanupHandlers(socket)
+
+    // Handle coupon events
+    setupCouponHandlers(socket)
 
     // Handle disconnection
     socket.on('disconnect', () => {
@@ -150,6 +155,132 @@ const setupAdminCleanupHandlers = (socket: Socket) => {
   })
 }
 
+// Coupon socket handlers
+const setupCouponHandlers = (socket: Socket) => {
+  // Check and assign coupons based on booking total
+  socket.on('check_coupon_eligibility', async (data) => {
+    try {
+      const { user_id, booking_amount } = data
+      
+      if (!user_id || !booking_amount) {
+        socket.emit('coupon_eligibility_result', {
+          success: false,
+          error: 'Missing user_id or booking_amount'
+        })
+        return
+      }
+
+      const assignedCoupons = await couponSocketService.checkAndAssignCoupons(user_id, booking_amount)
+      
+      socket.emit('coupon_eligibility_result', {
+        success: true,
+        assigned_coupons: assignedCoupons,
+        message: assignedCoupons.length > 0 ? 'New coupons assigned!' : 'No new coupons available'
+      })
+    } catch (error: any) {
+      console.error('❌ Socket coupon eligibility error:', error)
+      socket.emit('coupon_eligibility_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+
+  // Get user's available coupons
+  socket.on('get_user_coupons', async (data) => {
+    try {
+      const { user_id } = data
+      
+      if (!user_id) {
+        socket.emit('user_coupons_result', {
+          success: false,
+          error: 'Missing user_id'
+        })
+        return
+      }
+
+      const userCoupons = await couponSocketService.getUserAvailableCoupons(user_id)
+      
+      socket.emit('user_coupons_result', {
+        success: true,
+        coupons: userCoupons,
+        count: userCoupons.length
+      })
+    } catch (error: any) {
+      console.error('❌ Socket get user coupons error:', error)
+      socket.emit('user_coupons_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+
+  // Mark coupon as used
+  socket.on('use_coupon', async (data) => {
+    try {
+      const { user_id, coupon_id, booking_id } = data
+      
+      if (!user_id || !coupon_id || !booking_id) {
+        socket.emit('coupon_use_result', {
+          success: false,
+          error: 'Missing required data'
+        })
+        return
+      }
+
+      const success = await couponSocketService.markCouponAsUsed(user_id, coupon_id, booking_id)
+      
+      socket.emit('coupon_use_result', {
+        success,
+        message: success ? 'Coupon used successfully' : 'Failed to use coupon'
+      })
+    } catch (error: any) {
+      console.error('❌ Socket use coupon error:', error)
+      socket.emit('coupon_use_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+
+  // Get user's coupon usage statistics
+  socket.on('get_coupon_stats', async (data) => {
+    try {
+      const { user_id } = data
+      const stats = await couponSocketService.getCouponUsageStats(user_id)
+      
+      socket.emit('coupon_stats_result', {
+        success: true,
+        stats
+      })
+    } catch (error: any) {
+      console.error('❌ Socket coupon stats error:', error)
+      socket.emit('coupon_stats_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+
+  // Admin: Get all coupon usage statistics
+  socket.on('get_all_coupon_stats', async () => {
+    try {
+      const stats = await couponSocketService.getCouponUsageStats()
+      
+      socket.emit('all_coupon_stats_result', {
+        success: true,
+        stats
+      })
+    } catch (error: any) {
+      console.error('❌ Socket all coupon stats error:', error)
+      socket.emit('all_coupon_stats_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+}
+
 // System-wide broadcasts
 const setupSystemBroadcasts = (io: SocketServer) => {
   // Broadcast showtime status changes to specific theater rooms
@@ -173,6 +304,26 @@ const setupSystemBroadcasts = (io: SocketServer) => {
 
       // Emit to all staff
       io.to('staff_room').emit('showtime_cleanup_notification', data)
+    }
+
+    if (event === 'coupon_assignment') {
+      // Emit coupon assignment to specific user
+      if (data.user_id) {
+        io.to(`user_${data.user_id}`).emit('coupon_assigned', data)
+      }
+      
+      // Emit to admin room for monitoring
+      io.to('admin_room').emit('coupon_assignment_notification', data)
+    }
+
+    if (event === 'coupon_usage') {
+      // Emit coupon usage to specific user
+      if (data.user_id) {
+        io.to(`user_${data.user_id}`).emit('coupon_used_notification', data)
+      }
+      
+      // Emit to admin room for monitoring
+      io.to('admin_room').emit('coupon_usage_notification', data)
     }
 
     // Call original emit

@@ -28,7 +28,18 @@ export const createBookingController = async (
     result
   })
 }
+export const updateBookingController = async (
+  req: Request<BookingIdReqParams, any, CreateBookingReqBody>,
+  res: Response
+) => {
+  const { booking_id } = req.params
+  const result = await bookingService.updateBooking(booking_id, req.body)
 
+  res.json({
+    messages: BOOKING_MESSAGES.UPDATE_BOOKING_SUCCESS,
+    result
+  })
+}
 export const getMyBookingsController = async (
   req: Request<ParamsDictionary, any, any, GetBookingsReqQuery>,
   res: Response

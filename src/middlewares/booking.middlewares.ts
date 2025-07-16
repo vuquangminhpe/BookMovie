@@ -24,7 +24,7 @@ export const createBookingValidator = validate(
                 status: HTTP_STATUS.BAD_REQUEST
               })
             }
-            const showtime = await databaseService.showtimes.findOne({ _id: new ObjectId(value) })
+            const showtime = await databaseService.showtimes.findOne({ _id: new ObjectId(value as string) })
             if (!showtime) {
               throw new ErrorWithStatus({
                 message: SHOWTIME_MESSAGES.SHOWTIME_NOT_FOUND,
@@ -115,6 +115,33 @@ export const createBookingValidator = validate(
   )
 )
 
+export const updateBookingValidator = validate(
+  checkSchema(
+    {
+      booking_id: {
+        custom: {
+          options: async (value) => {
+            if (!ObjectId.isValid(value)) {
+              throw new ErrorWithStatus({
+                message: BOOKING_MESSAGES.INVALID_BOOKING_ID,
+                status: HTTP_STATUS.BAD_REQUEST
+              })
+            }
+            const booking = await databaseService.bookings.findOne({ _id: new ObjectId(value as string) })
+            if (!booking) {
+              throw new ErrorWithStatus({
+                message: BOOKING_MESSAGES.BOOKING_NOT_FOUND,
+                status: HTTP_STATUS.NOT_FOUND
+              })
+            }
+            return true
+          }
+        }
+      }
+    },
+    ['params', 'body']
+  )
+)
 export const updateBookingStatusValidator = validate(
   checkSchema(
     {

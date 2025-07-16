@@ -8,6 +8,7 @@ import {
   getBookingExpirationInfoController,
   getMyBookingsController,
   getTicketQRController,
+  updateBookingController,
   updateBookingStatusController
 } from '../controllers/bookings.controllers'
 import { AccessTokenValidator, verifiedUserValidator } from '../middlewares/users.middlewares'
@@ -30,7 +31,13 @@ bookingsRouter.post(
   createBookingValidator,
   wrapAsync(createBookingController)
 )
-
+bookingsRouter.post(
+  '/updateBookingAndSeats/:booking_id',
+  AccessTokenValidator,
+  verifiedUserValidator,
+  updateBookingStatusValidator,
+  wrapAsync(updateBookingController)
+)
 bookingsRouter.get('/my-bookings', AccessTokenValidator, verifiedUserValidator, wrapAsync(getMyBookingsController))
 
 bookingsRouter.get(

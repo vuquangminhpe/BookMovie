@@ -16,6 +16,7 @@ import { BOOKING_MESSAGES, PAYMENT_MESSAGES } from '../constants/messages'
 import { envConfig } from '../constants/config'
 import { Request } from 'express'
 import bookingExpirationService from './booking-expiration.services'
+import couponSocketService from './coupon-socket.services'
 
 class PaymentService {
   // Sort object for VNPay signature generation
@@ -116,6 +117,9 @@ class PaymentService {
           }
         )
 
+        // Check and assign coupons based on booking total
+        await couponSocketService.checkAndAssignCoupons(user_id, booking.total_amount)
+
         return { payment_id: existingPayment._id.toString() }
       } else {
         throw new ErrorWithStatus({
@@ -150,6 +154,9 @@ class PaymentService {
         $currentDate: { updated_at: true }
       }
     )
+
+    // Check and assign coupons based on booking total
+    await couponSocketService.checkAndAssignCoupons(user_id, booking.total_amount)
 
     return { payment_id: payment_id.toString() }
   }
@@ -414,6 +421,12 @@ class PaymentService {
             $currentDate: { updated_at: true }
           }
         )
+
+        // Check and assign coupons based on booking total
+        const booking = await databaseService.bookings.findOne({ _id: new ObjectId(booking_id) })
+        if (booking) {
+          await couponSocketService.checkAndAssignCoupons(booking.user_id.toString(), booking.total_amount)
+        }
       }
 
       return { success: true, message: 'Payment successful' }
