@@ -6,7 +6,12 @@ import HTTP_STATUS from '../constants/httpStatus'
 
 class SeatLockService {
   // Lock ghế tạm thời (5 phút)
-  async lockSeats(showtime_id: string, user_id: string, seats: Array<{ row: string; number: number }>) {
+  async lockSeats(
+    booking_id: string,
+    showtime_id: string,
+    user_id: string,
+    seats: Array<{ row: string; number: number }>
+  ) {
     const seatLockId = new ObjectId()
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 phút
 
@@ -47,6 +52,7 @@ class SeatLockService {
         _id: seatLockId,
         showtime_id: new ObjectId(showtime_id),
         user_id: new ObjectId(user_id),
+        booking_id: new ObjectId(booking_id),
         seats,
         status: SeatSelectionStatus.SELECTED,
         expires_at: expiresAt
@@ -86,14 +92,21 @@ class SeatLockService {
       })
       .toArray()
 
-    const lockedSeats: Array<{ user_id: string; showtime_id: string; row: string; number: number; expires_at: Date }> =
-      []
+    const lockedSeats: Array<{
+      user_id: string
+      showtime_id: string
+      row: string
+      number: number
+      expires_at: Date
+      booking_id: string
+    }> = []
 
     locks.forEach((lock) => {
       lock.seats.forEach((seat) => {
         lockedSeats.push({
           user_id: lock.user_id.toString(),
           showtime_id: lock.showtime_id.toString(),
+          booking_id: lock.booking_id.toString(),
           row: seat.row,
           number: seat.number,
           expires_at: lock.expires_at

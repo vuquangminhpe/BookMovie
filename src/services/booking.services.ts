@@ -85,6 +85,7 @@ class BookingService {
     // 1. Lock seats trước khi kiểm tra availability
     const seatLock = await seatLockService.lockSeats(
       payload.showtime_id,
+      booking_id.toString(),
       user_id,
       payload.seats.map((seat) => ({ row: seat.row, number: seat.number }))
     )
