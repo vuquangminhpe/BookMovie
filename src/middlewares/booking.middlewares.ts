@@ -164,6 +164,54 @@ export const updateBookingStatusValidator = validate(
             return true
           }
         }
+      },
+      status: {
+        notEmpty: {
+          errorMessage: BOOKING_MESSAGES.INVALID_STATUS
+        },
+        isIn: {
+          options: [Object.values(BookingStatus)],
+          errorMessage: BOOKING_MESSAGES.INVALID_STATUS
+        },
+        custom: {
+          options: async (value, { req }) => {
+            const booking_id = req?.params?.booking_id
+            const booking = await databaseService.bookings.findOne({ _id: new ObjectId(booking_id) })
+
+            // If trying to cancel a booking
+            if (value === BookingStatus.CANCELLED) {
+              if (booking?.status === BookingStatus.CANCELLED) {
+                throw new ErrorWithStatus({
+                  message: BOOKING_MESSAGES.BOOKING_ALREADY_CANCELLED,
+                  status: HTTP_STATUS.BAD_REQUEST
+                })
+              }
+
+              if (booking?.status === BookingStatus.COMPLETED) {
+                throw new ErrorWithStatus({
+                  message: BOOKING_MESSAGES.BOOKING_CANNOT_BE_CANCELLED,
+                  status: HTTP_STATUS.BAD_REQUEST
+                })
+              }
+
+              // Check if showtime has already started
+              if (booking) {
+                const showtime = await databaseService.showtimes.findOne({
+                  _id: booking.showtime_id
+                })
+
+                if (showtime && new Date(showtime.start_time) < new Date()) {
+                  throw new ErrorWithStatus({
+                    message: BOOKING_MESSAGES.BOOKING_CANNOT_BE_CANCELLED,
+                    status: HTTP_STATUS.BAD_REQUEST
+                  })
+                }
+              }
+            }
+
+            return true
+          }
+        }
       }
     },
     ['params', 'body']

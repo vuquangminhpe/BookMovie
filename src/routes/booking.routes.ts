@@ -35,7 +35,6 @@ bookingsRouter.post(
   '/updateBookingAndSeats/:booking_id',
   AccessTokenValidator,
   verifiedUserValidator,
-  updateBookingStatusValidator,
   wrapAsync(updateBookingController)
 )
 bookingsRouter.get('/my-bookings', AccessTokenValidator, verifiedUserValidator, wrapAsync(getMyBookingsController))
