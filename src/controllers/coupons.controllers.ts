@@ -5,7 +5,7 @@ import { TokenPayload } from '../models/request/User.request'
 import HTTP_STATUS from '../constants/httpStatus'
 import { ObjectId } from 'mongodb'
 import { ErrorWithStatus } from '~/models/Errors'
-import couponService from '~/services/coupons.controllers'
+import couponService from '~/services/coupons.services'
 
 // Admin controllers
 export const createCouponController = async (req: Request, res: Response) => {
