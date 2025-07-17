@@ -73,7 +73,7 @@
 
 /**
  * @swagger
- * /coupons:
+ * /admin/coupons:
  *   post:
  *     summary: Create a new coupon (Admin only)
  *     description: Create a new coupon with specified discount rules and constraints
@@ -267,7 +267,7 @@
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  *
- * /coupons/{coupon_id}:
+ * /admin/coupons/{coupon_id}:
  *   get:
  *     summary: Get coupon by ID (Admin only)
  *     description: Retrieve detailed information about a specific coupon
