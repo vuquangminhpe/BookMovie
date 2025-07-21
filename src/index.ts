@@ -31,6 +31,7 @@ import { setupSocketHandlers } from './utils/socket-handlers'
 import paymentsRouter from './routes/payment.routes'
 import { execFileAsync } from './utils/video'
 import bookingsRouter from './routes/booking.routes'
+import ratingsRouter from './routes/ratings.routes'
 
 config()
 
@@ -266,6 +267,7 @@ app.use('/staff', staffRouter)
 app.use('/partners', partnerRouter)
 app.use('/payments', paymentsRouter)
 app.use('/bookings', bookingsRouter)
+app.use('/ratings', ratingsRouter)
 // Error handling
 app.use(defaultErrorHandler)
 app.get('/health/ffmpeg', async (req, res) => {
