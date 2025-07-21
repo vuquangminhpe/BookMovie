@@ -97,7 +97,7 @@ adminRouter.delete('/users/:user_id', wrapAsync(adminDeleteUserController))
 adminRouter.post('/add/register/Concierge', wrapAsync(adminCreateConciergeController))
 adminRouter.get('/concierge/all/tk/get', wrapAsync(getAllConciergeController))
 adminRouter.put('/concierge/update/:concierge_id', wrapAsync(updateConciergeController))
-adminRouter.post('/concierge/deleted/:concierge_id', wrapAsync(deleteConciergeController))
+adminRouter.delete('/concierge/deleted/:concierge_id', wrapAsync(deleteConciergeController))
 
 /**
  * =============================================================================
