@@ -714,6 +714,11 @@ export const getAllConciergeController = async (req: Request, res: Response) => 
   })
   res.json({
     message: ADMIN_MESSAGES.GET_ALL_CONCIERGE_SUCCESS,
-    result
+    result: {
+      concierges: result.concierges,
+      total: result.concierges.length,
+      page: page,
+      total_pages: result.totalPages
+    }
   })
 }

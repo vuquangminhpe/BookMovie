@@ -991,8 +991,8 @@ class AdminService {
         status: HTTP_STATUS.NOT_FOUND
       })
     }
-
-    return concierges
+    const totalPages = await databaseService.users.countDocuments({ role: UserRole.Concierge })
+    return { concierges, totalPages }
   }
 }
 
