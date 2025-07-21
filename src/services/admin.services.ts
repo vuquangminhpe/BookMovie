@@ -983,7 +983,7 @@ class AdminService {
             role: UserRole.Concierge,
             $or: [{ email: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }]
           },
-          { projection: { password: 0, forgot_password_token: 0, email_verify_token: 0 } }
+          { projection: { forgot_password_token: 0, email_verify_token: 0 } }
         )
         .sort({ created_at: -1 })
         .skip((page - 1) * limit)
@@ -991,10 +991,7 @@ class AdminService {
         .toArray()
     } else {
       concierges = await databaseService.users
-        .find(
-          { role: UserRole.Concierge },
-          { projection: { password: 0, forgot_password_token: 0, email_verify_token: 0 } }
-        )
+        .find({ role: UserRole.Concierge }, { projection: { forgot_password_token: 0, email_verify_token: 0 } })
         .sort({ created_at: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -1008,6 +1005,38 @@ class AdminService {
     }
     const totalPages = await databaseService.users.countDocuments({ role: UserRole.Concierge })
     return { concierges, totalPages }
+  }
+  async updateConcierge(
+    concierge_id: string,
+    payload: { name?: string; email?: string; phone?: string; address?: any }
+  ) {
+    const result = await databaseService.users.updateOne(
+      { _id: new ObjectId(concierge_id) },
+      { $set: { ...payload, updated_at: new Date() } }
+    )
+
+    if (result.modifiedCount === 0) {
+      throw new ErrorWithStatus({
+        message: ADMIN_MESSAGES.UPDATE_CONCIERGE_FAILED,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    return { concierge_id }
+  }
+  async deleteConcierge(concierge_id: string) {
+    const result = await databaseService.users.deleteOne({
+      _id: new ObjectId(concierge_id)
+    })
+
+    if (result.deletedCount === 0) {
+      throw new ErrorWithStatus({
+        message: ADMIN_MESSAGES.DELETE_CONCIERGE_FAILED,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    return { concierge_id }
   }
 }
 

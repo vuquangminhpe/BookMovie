@@ -723,3 +723,19 @@ export const getAllConciergeController = async (req: Request, res: Response) => 
     }
   })
 }
+export const updateConciergeController = async (req: Request<any, any, UpdateUserReqBody>, res: Response) => {
+  const { concierge_id } = req.params
+  const result = await adminService.updateConcierge(concierge_id, req.body)
+  res.json({
+    message: ADMIN_MESSAGES.UPDATE_CONCIERGE_SUCCESS,
+    result
+  })
+}
+export const deleteConciergeController = async (req: Request<UserIdReqParams>, res: Response) => {
+  const { concierge_id } = req.params
+  const result = await adminService.deleteConcierge(concierge_id)
+  res.json({
+    message: ADMIN_MESSAGES.DELETE_CONCIERGE_SUCCESS,
+    result
+  })
+}

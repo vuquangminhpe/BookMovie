@@ -30,7 +30,9 @@ import {
   sendPaymentSuccessEmailController,
   sendPaymentFailedEmailController,
   adminCreateConciergeController,
-  getAllConciergeController
+  getAllConciergeController,
+  updateConciergeController,
+  deleteConciergeController
 } from '../controllers/admin.controllers'
 
 // Contract controllers
@@ -86,8 +88,17 @@ adminRouter.put('/users/:user_id/ban', wrapAsync(banUserController))
 adminRouter.put('/users/:user_id/unban', wrapAsync(unbanUserController))
 adminRouter.put('/users/:user_id', wrapAsync(adminUpdateUserController))
 adminRouter.delete('/users/:user_id', wrapAsync(adminDeleteUserController))
+
+/**
+ * =============================================================================
+ * CONCIERGE MANAGEMENT
+ * =============================================================================
+ */
 adminRouter.post('/add/register/Concierge', wrapAsync(adminCreateConciergeController))
 adminRouter.get('/concierge/all/tk/get', wrapAsync(getAllConciergeController))
+adminRouter.put('/concierge/update/:concierge_id', wrapAsync(updateConciergeController))
+adminRouter.post('/concierge/deleted/:concierge_id', wrapAsync(deleteConciergeController))
+
 /**
  * =============================================================================
  * CONTRACT MANAGEMENT (NEW)
