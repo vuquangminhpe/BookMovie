@@ -16,6 +16,7 @@ import { sendEmail } from '~/utils/sendmail'
 import databaseService from '~/services/database.services'
 import { ObjectId } from 'mongodb'
 import { BookingStatus, PaymentStatus } from '~/models/schemas/Booking.schema'
+import paymentExpirationService from '~/services/payment-expiration.services'
 
 export const createPaymentController = async (
   req: Request<ParamsDictionary, any, CreatePaymentReqBody>,
@@ -595,6 +596,9 @@ export const sepayPaymentCallbackController = async (req: Request, res: Response
     let payment_id: ObjectId
 
     if (existingPayment) {
+      // Clear payment expiration job since payment is completed
+      paymentExpirationService.clearPaymentExpirationJob(existingPayment._id.toString())
+
       await databaseService.payments.updateOne(
         { _id: existingPayment._id },
         {

@@ -17,6 +17,7 @@ import { envConfig } from '../constants/config'
 import { Request } from 'express'
 import bookingExpirationService from './booking-expiration.services'
 import couponSocketService from './coupon-socket.services'
+import paymentExpirationService from './payment-expiration.services'
 
 class PaymentService {
   // Sort object for VNPay signature generation
@@ -218,6 +219,13 @@ class PaymentService {
       }
     )
 
+    // Create payment expiration job (15 minutes)
+    paymentExpirationService.createPaymentExpirationJob(
+      payment_id.toString(),
+      payload.booking_id,
+      user_id
+    )
+
     return {
       payment_id: payment_id.toString(),
       bank_info: {
@@ -273,7 +281,7 @@ class PaymentService {
         amount: amount,
         payment_method: PaymentMethod.VNPAY,
         order_id: orderId,
-        status: PaymentStatus.COMPLETED //fix is pending
+        status: PaymentStatus.PENDING
       })
     )
 
@@ -312,6 +320,24 @@ class PaymentService {
           updated_at: new Date()
         }
       }
+    )
+
+    // Update booking to set payment_status as PENDING
+    await databaseService.bookings.updateOne(
+      { _id: new ObjectId(payload.booking_id) },
+      {
+        $set: {
+          payment_status: PaymentStatus.PENDING
+        },
+        $currentDate: { updated_at: true }
+      }
+    )
+
+    // Create payment expiration job (15 minutes)
+    paymentExpirationService.createPaymentExpirationJob(
+      payment_id.toString(),
+      payload.booking_id,
+      user_id
     )
 
     return {
@@ -371,6 +397,9 @@ class PaymentService {
         })
 
         if (payment) {
+          // Clear payment expiration job since payment failed
+          paymentExpirationService.clearPaymentExpirationJob(payment._id.toString())
+
           await databaseService.payments.updateOne(
             { _id: payment._id },
             {
@@ -396,6 +425,9 @@ class PaymentService {
       })
 
       if (payment) {
+        // Clear payment expiration job since payment is completed
+        paymentExpirationService.clearPaymentExpirationJob(payment._id.toString())
+
         await databaseService.payments.updateOne(
           { _id: payment._id },
           {

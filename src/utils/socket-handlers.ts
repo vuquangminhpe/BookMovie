@@ -1,6 +1,7 @@
 import { Server as SocketServer, Socket } from 'socket.io'
 import showtimeCleanupService from '../services/showtime-cleanup.services'
 import couponSocketService from '../services/coupon-socket.services'
+import paymentExpirationService from '../services/payment-expiration.services'
 import { triggerManualCleanup, getCleanupStats } from './cleanup'
 
 export const setupSocketHandlers = (io: SocketServer) => {
@@ -9,6 +10,7 @@ export const setupSocketHandlers = (io: SocketServer) => {
   // Set socket instance for services
   showtimeCleanupService.setSocketIO(io)
   couponSocketService.setSocketIO(io)
+  paymentExpirationService.setSocketIO(io)
 
   io.on('connection', (socket: Socket) => {
     console.log(`🔌 Client connected: ${socket.id}`)
@@ -28,6 +30,9 @@ export const setupSocketHandlers = (io: SocketServer) => {
 
     // Handle coupon events
     setupCouponHandlers(socket)
+
+    // Handle payment expiration events
+    setupPaymentExpirationHandlers(socket)
 
     // Handle disconnection
     socket.on('disconnect', () => {
@@ -161,7 +166,7 @@ const setupCouponHandlers = (socket: Socket) => {
   socket.on('check_coupon_eligibility', async (data) => {
     try {
       const { user_id, booking_amount } = data
-      
+
       if (!user_id || !booking_amount) {
         socket.emit('coupon_eligibility_result', {
           success: false,
@@ -171,7 +176,7 @@ const setupCouponHandlers = (socket: Socket) => {
       }
 
       const assignedCoupons = await couponSocketService.checkAndAssignCoupons(user_id, booking_amount)
-      
+
       socket.emit('coupon_eligibility_result', {
         success: true,
         assigned_coupons: assignedCoupons,
@@ -190,7 +195,7 @@ const setupCouponHandlers = (socket: Socket) => {
   socket.on('get_user_coupons', async (data) => {
     try {
       const { user_id } = data
-      
+
       if (!user_id) {
         socket.emit('user_coupons_result', {
           success: false,
@@ -200,7 +205,7 @@ const setupCouponHandlers = (socket: Socket) => {
       }
 
       const userCoupons = await couponSocketService.getUserAvailableCoupons(user_id)
-      
+
       socket.emit('user_coupons_result', {
         success: true,
         coupons: userCoupons,
@@ -219,7 +224,7 @@ const setupCouponHandlers = (socket: Socket) => {
   socket.on('use_coupon', async (data) => {
     try {
       const { user_id, coupon_id, booking_id } = data
-      
+
       if (!user_id || !coupon_id || !booking_id) {
         socket.emit('coupon_use_result', {
           success: false,
@@ -229,7 +234,7 @@ const setupCouponHandlers = (socket: Socket) => {
       }
 
       const success = await couponSocketService.markCouponAsUsed(user_id, coupon_id, booking_id)
-      
+
       socket.emit('coupon_use_result', {
         success,
         message: success ? 'Coupon used successfully' : 'Failed to use coupon'
@@ -248,7 +253,7 @@ const setupCouponHandlers = (socket: Socket) => {
     try {
       const { user_id } = data
       const stats = await couponSocketService.getCouponUsageStats(user_id)
-      
+
       socket.emit('coupon_stats_result', {
         success: true,
         stats
@@ -266,7 +271,7 @@ const setupCouponHandlers = (socket: Socket) => {
   socket.on('get_all_coupon_stats', async () => {
     try {
       const stats = await couponSocketService.getCouponUsageStats()
-      
+
       socket.emit('all_coupon_stats_result', {
         success: true,
         stats
@@ -274,6 +279,95 @@ const setupCouponHandlers = (socket: Socket) => {
     } catch (error: any) {
       console.error('❌ Socket all coupon stats error:', error)
       socket.emit('all_coupon_stats_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+}
+
+// Payment expiration socket handlers
+const setupPaymentExpirationHandlers = (socket: Socket) => {
+  // Get payment remaining time
+  socket.on('get_payment_remaining_time', async (data) => {
+    try {
+      const { payment_id } = data
+
+      if (!payment_id) {
+        socket.emit('payment_remaining_time_result', {
+          success: false,
+          error: 'Missing payment_id'
+        })
+        return
+      }
+
+      const remainingTime = paymentExpirationService.getRemainingTime(payment_id)
+
+      socket.emit('payment_remaining_time_result', {
+        success: true,
+        payment_id,
+        remaining_time: remainingTime,
+        expires_in_minutes: remainingTime ? Math.ceil(remainingTime / (60 * 1000)) : null
+      })
+    } catch (error: any) {
+      console.error('❌ Socket get payment remaining time error:', error)
+      socket.emit('payment_remaining_time_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+
+  // Get payment expiration stats (admin only)
+  socket.on('get_payment_expiration_stats', async () => {
+    try {
+      const stats = paymentExpirationService.getPaymentExpirationStats()
+
+      socket.emit('payment_expiration_stats_result', {
+        success: true,
+        stats
+      })
+    } catch (error: any) {
+      console.error('❌ Socket payment expiration stats error:', error)
+      socket.emit('payment_expiration_stats_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+
+  // Clear payment expiration job (admin only - for cancelled payments)
+  socket.on('clear_payment_expiration', async (data) => {
+    try {
+      const { payment_id, admin_id } = data
+
+      if (!payment_id) {
+        socket.emit('clear_payment_expiration_result', {
+          success: false,
+          error: 'Missing payment_id'
+        })
+        return
+      }
+
+      const cleared = paymentExpirationService.clearPaymentExpirationJob(payment_id)
+
+      socket.emit('clear_payment_expiration_result', {
+        success: cleared,
+        payment_id,
+        message: cleared ? 'Payment expiration job cleared' : 'No active job found'
+      })
+
+      if (cleared) {
+        // Notify admin room
+        socket.broadcast.to('admin_room').emit('payment_expiration_cleared', {
+          payment_id,
+          cleared_by: admin_id || 'unknown',
+          timestamp: new Date().toISOString()
+        })
+      }
+    } catch (error: any) {
+      console.error('❌ Socket clear payment expiration error:', error)
+      socket.emit('clear_payment_expiration_result', {
         success: false,
         error: error.message
       })
@@ -311,7 +405,7 @@ const setupSystemBroadcasts = (io: SocketServer) => {
       if (data.user_id) {
         io.to(`user_${data.user_id}`).emit('coupon_assigned', data)
       }
-      
+
       // Emit to admin room for monitoring
       io.to('admin_room').emit('coupon_assignment_notification', data)
     }
@@ -321,9 +415,19 @@ const setupSystemBroadcasts = (io: SocketServer) => {
       if (data.user_id) {
         io.to(`user_${data.user_id}`).emit('coupon_used_notification', data)
       }
-      
+
       // Emit to admin room for monitoring
       io.to('admin_room').emit('coupon_usage_notification', data)
+    }
+
+    if (event === 'payment_expired') {
+      // Emit payment expiration to specific user
+      if (data.user_id) {
+        io.to(`user_${data.user_id}`).emit('payment_expired', data)
+      }
+
+      // Emit to admin room for monitoring
+      io.to('admin_room').emit('payment_expiration_notification', data)
     }
 
     // Call original emit

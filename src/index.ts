@@ -21,6 +21,7 @@ import couponsRouter from './routes/coupons.routes'
 import favoritesRouter from './routes/favorites.routes'
 import recommendationRouter from './routes/recommendation.routes'
 import bookingExpirationService from './services/booking-expiration.services'
+import paymentExpirationService from './services/payment-expiration.services'
 import { setupCleanupJobs, shutdownCleanupJobs } from './utils/cleanup'
 import feedbacksRouter from './routes/feedback.routes'
 import partnerRouter from './routes/partner.routes'
@@ -48,6 +49,7 @@ const connectWithRetry = async (retries = 5) => {
       await databaseService.connect()
       console.log('✅ Database connected successfully')
       await bookingExpirationService.recoverPendingBookings()
+      await paymentExpirationService.recoverPendingPayments()
       break
     } catch (error) {
       console.error(`❌ Database connection attempt ${i + 1} failed:`, error)
@@ -91,6 +93,9 @@ notificationService.setSocketIO(io)
 
 // Setup showtime cleanup service với socket.io
 showtimeCleanupService.setSocketIO(io)
+
+// Setup payment expiration service với socket.io
+paymentExpirationService.setSocketIO(io)
 
 // Security middleware
 app.use(
@@ -282,6 +287,7 @@ const gracefulShutdown = (signal: string) => {
     // Cleanup all services
     shutdownCleanupJobs()
     bookingExpirationService.clearAllJobs()
+    paymentExpirationService.clearAllJobs()
     console.log('All cleanup jobs cleared')
 
     // Close database connection
