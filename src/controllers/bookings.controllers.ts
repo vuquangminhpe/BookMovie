@@ -217,7 +217,7 @@ export const deleteSeatLocksByRowAndNumberController = async (req: Request, res:
   const { user_id } = req.decode_authorization as TokenPayload
 
   for (const seat of seats) {
-    const result = await databaseService.seatLocks.updateOne(
+    await databaseService.seatLocks.updateOne(
       {
         showtime_id: new ObjectId(showtime_id),
         user_id: new ObjectId(user_id)
@@ -231,13 +231,14 @@ export const deleteSeatLocksByRowAndNumberController = async (req: Request, res:
         }
       }
     )
-    const booking = await databaseService.seatLocks.findOne({
-      showtime_id: new ObjectId(result.upsertedId?.toString() || ''),
+
+    const seatLock = await databaseService.seatLocks.findOne({
+      showtime_id: new ObjectId(showtime_id),
       user_id: new ObjectId(user_id)
     })
     await databaseService.bookings.updateOne(
       {
-        _id: new ObjectId(booking?.booking_id?.toString())
+        _id: new ObjectId(seatLock?.booking_id?.toString())
       },
       {
         $pull: {
