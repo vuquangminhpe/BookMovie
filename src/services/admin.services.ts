@@ -974,10 +974,13 @@ class AdminService {
 
     return { concierge_id: result.insertedId }
   }
-  async getAllConcierge({ limit, page }: { limit: number; page: number }) {
+  async getAllConcierge({ limit, page, search }: { limit: number; page: number; search: string }) {
     const concierges = await databaseService.users
       .find(
-        { role: UserRole.Concierge },
+        {
+          role: UserRole.Concierge,
+          $or: [{ email: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }]
+        },
         { projection: { password: 0, forgot_password_token: 0, email_verify_token: 0 } }
       )
       .sort({ created_at: -1 })
