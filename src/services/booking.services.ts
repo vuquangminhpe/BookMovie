@@ -349,7 +349,7 @@ class BookingService {
 
   async getBookingByTicketCode(ticket_code: string) {
     const booking = await databaseService.bookings.findOne({ ticket_code })
-
+    await databaseService.bookings.updateOne({ ticket_code }, { $set: { status: BookingStatus.USED } })
     if (booking) {
       return this.getBookingDetails(booking._id.toString())
     }

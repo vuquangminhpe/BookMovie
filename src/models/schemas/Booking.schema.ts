@@ -19,6 +19,7 @@ interface BookingType {
   ticket_code?: string
   status: BookingStatus
   payment_status: PaymentStatus
+
   created_at?: Date
   updated_at?: Date
 }
@@ -27,7 +28,8 @@ export enum BookingStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
   CANCELLED = 'cancelled',
-  COMPLETED = 'completed'
+  COMPLETED = 'completed',
+  USED = 'used'
 }
 
 export enum PaymentStatus {

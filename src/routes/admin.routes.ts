@@ -56,7 +56,6 @@ import {
   getCouponsController,
   updateCouponController
 } from '../controllers/coupons.controllers'
-import { verifyTicketQRController } from '../controllers/bookings.controllers'
 import databaseService from '~/services/database.services'
 import { UserRole } from '~/models/schemas/User.schema'
 import { ObjectId } from 'mongodb'
