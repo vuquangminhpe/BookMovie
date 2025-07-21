@@ -18,6 +18,7 @@ import { ParamsDictionary } from 'express-serve-static-core'
 import { verifyAccessToken } from '../utils/common'
 import { envConfig } from '../constants/config'
 import valkeyService from '../services/valkey.services'
+import { UserRole } from '~/models/schemas/User.schema'
 
 type ExpressMiddleware = RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>
 const passwordSchema: ParamSchema = {

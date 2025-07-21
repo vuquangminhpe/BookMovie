@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { ParamsDictionary } from 'express-serve-static-core'
-import { BOOKING_MESSAGES } from '../constants/messages'
+import { BOOKING_MESSAGES, USERS_MESSAGES } from '../constants/messages'
 import {
   BookingIdReqParams,
   CreateBookingReqBody,
@@ -16,6 +16,8 @@ import { ObjectId } from 'mongodb'
 import { BookingStatus, PaymentStatus } from '~/models/schemas/Booking.schema'
 import bookingExpirationService from '~/services/booking-expiration.services'
 import seatLockService from '~/services/seat-lock.services'
+import { ErrorWithStatus } from '~/models/Errors'
+import { UserRole } from '~/models/schemas/User.schema'
 
 export const createBookingController = async (
   req: Request<ParamsDictionary, any, CreateBookingReqBody>,
@@ -113,7 +115,24 @@ export const getTicketQRController = async (req: Request<TicketCodeReqParams>, r
 }
 export const verifyTicketQRController = async (req: Request, res: Response) => {
   const { ticket_code } = req.body
+  const { user_id } = req.decode_authorization as TokenPayload
+  const user = await databaseService.users.findOne({
+    _id: new ObjectId(user_id)
+  })
 
+  if (!user) {
+    throw new ErrorWithStatus({
+      message: USERS_MESSAGES.USER_NOT_FOUND,
+      status: HTTP_STATUS.NOT_FOUND
+    })
+  }
+
+  if (!user.role || ![UserRole.Admin, UserRole.Concierge, UserRole.Staff].includes(user.role)) {
+    throw new ErrorWithStatus({
+      message: USERS_MESSAGES.USER_IS_NOT_CONCIERGE,
+      status: HTTP_STATUS.FORBIDDEN
+    })
+  }
   if (!ticket_code) {
     return res.status(HTTP_STATUS.BAD_REQUEST).json({
       message: BOOKING_MESSAGES.TICKET_CODE_IS_REQUIRED
@@ -128,7 +147,7 @@ export const verifyTicketQRController = async (req: Request, res: Response) => {
       message: BOOKING_MESSAGES.BOOKING_NOT_FOUND
     })
   }
-  const user = await databaseService.users.findOne({ _id: booking.user_id })
+  const bookingUser = await databaseService.users.findOne({ _id: booking.user_id })
   res.json({
     message: 'Ticket verification success',
     result: {
@@ -136,7 +155,7 @@ export const verifyTicketQRController = async (req: Request, res: Response) => {
       ticket_code: booking.ticket_code,
       status: booking.status,
       payment_status: booking.payment_status,
-      user,
+      user: bookingUser,
       movie: booking.movie,
       theater: booking.theater,
       screen: booking.screen,

@@ -83,7 +83,8 @@ export const USERS_MESSAGES = {
   LINK_IS_REQUIRED: 'Link is required',
   LINK_MUST_BE_A_STRING: 'Link must be a string',
   REACTION_USER_ID_MUST_NOT_BE_EMPTY: 'Reaction user id must not be empty',
-  INVALID_REFRESH_TOKEN: 'Invalid refresh token'
+  INVALID_REFRESH_TOKEN: 'Invalid refresh token',
+  USER_IS_NOT_CONCIERGE: 'User is not a concierge, staff, admin'
 } as const
 
 export const MOVIE_MESSAGES = {

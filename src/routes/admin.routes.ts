@@ -254,13 +254,6 @@ adminRouter.delete('/coupons/:coupon_id', wrapAsync(deleteCouponController))
 
 /**
  * =============================================================================
- * TICKET VERIFICATION
- * =============================================================================
- */
-adminRouter.post('/verify-ticket', wrapAsync(verifyTicketQRController))
-
-/**
- * =============================================================================
  * PAYMENT EMAIL MANAGEMENT
  * =============================================================================
  */

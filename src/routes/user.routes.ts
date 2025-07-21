@@ -40,15 +40,16 @@ import {
   verifyForgotPasswordTokenValidator
 } from '../middlewares/users.middlewares'
 import { wrapAsync } from '../utils/handler'
+import { verifyTicketQRController } from '~/controllers/bookings.controllers'
 
 const usersRouter = Router()
 
 usersRouter.post('/login', loginValidator, wrapAsync(loginController))
 usersRouter.get('/oauth/google', wrapAsync(oauthController))
 usersRouter.post('/verify_status_user', wrapAsync(verifyEmailCodeController))
-usersRouter.post('/register', registerValidator,wrapAsync(registerController))
+usersRouter.post('/register', registerValidator, wrapAsync(registerController))
 usersRouter.post('/logout', AccessTokenValidator, RefreshTokenValidator, wrapAsync(logoutController))
-usersRouter.get('/get_all_user',AccessTokenValidator, wrapAsync(getAllUsersController))
+usersRouter.get('/get_all_user', AccessTokenValidator, wrapAsync(getAllUsersController))
 /**
  * Description: refresh token
  * Path: /refresh-token
@@ -180,4 +181,10 @@ usersRouter.post('/verify-registration', wrapAsync(verifyRegistrationCodeControl
  * query: { email: string }
  */
 usersRouter.get('/check-registration-status', wrapAsync(checkRegistrationStatusController))
+/**
+ * =============================================================================
+ * TICKET VERIFICATION
+ * =============================================================================
+ */
+usersRouter.post('/verify-ticket', RefreshTokenValidator, wrapAsync(verifyTicketQRController))
 export default usersRouter
