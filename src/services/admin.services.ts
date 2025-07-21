@@ -1003,8 +1003,9 @@ class AdminService {
         status: HTTP_STATUS.NOT_FOUND
       })
     }
-    const totalPages = await databaseService.users.countDocuments({ role: UserRole.Concierge })
-    return { concierges, totalPages }
+    const totalConcierges = await databaseService.users.countDocuments({ role: UserRole.Concierge })
+    const totalPages = Math.ceil(totalConcierges / limit)
+    return { concierges, totalPages, total: totalConcierges }
   }
   async updateConcierge(
     concierge_id: string,
