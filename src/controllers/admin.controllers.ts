@@ -706,3 +706,14 @@ export const adminCreateConciergeController = async (req: Request, res: Response
     result
   })
 }
+export const getAllConciergeController = async (req: Request, res: Response) => {
+  const { limit, page } = req.query
+  const result = await adminService.getAllConcierge({
+    limit: parseInt(limit as string) || 10,
+    page: parseInt(page as string) || 1
+  })
+  res.json({
+    message: ADMIN_MESSAGES.GET_ALL_CONCIERGE_SUCCESS,
+    result
+  })
+}

@@ -306,7 +306,9 @@ export const ADMIN_MESSAGES = {
   CANNOT_DELETE_ADMIN: 'Cannot delete admin user',
   CANNOT_DELETE_SELF: 'Cannot delete your own account',
   CANNOT_DELETE_USER_WITH_ACTIVE_BOOKINGS: 'Cannot delete user with active bookings',
-  CREATE_CONCIERGE_SUCCESS: 'Create concierge success'
+  CREATE_CONCIERGE_SUCCESS: 'Create concierge success',
+  GET_ALL_CONCIERGE_SUCCESS: 'Get all concierges success',
+  NO_CONCIERGE_FOUND: 'No concierge found'
 } as const
 export const BANNER_MESSAGES = {
   CREATE_BANNER_SUCCESS: 'Create banner success',

@@ -974,6 +974,26 @@ class AdminService {
 
     return { concierge_id: result.insertedId }
   }
+  async getAllConcierge({ limit, page }: { limit: number; page: number }) {
+    const concierges = await databaseService.users
+      .find(
+        { role: UserRole.Concierge },
+        { projection: { password: 0, forgot_password_token: 0, email_verify_token: 0 } }
+      )
+      .sort({ created_at: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray()
+
+    if (concierges.length === 0) {
+      throw new ErrorWithStatus({
+        message: ADMIN_MESSAGES.NO_CONCIERGE_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    return concierges
+  }
 }
 
 const adminService = new AdminService()
