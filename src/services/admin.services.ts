@@ -961,6 +961,19 @@ class AdminService {
       email: user.email
     }
   }
+  async createConcierge(admin_id: string, payload: any) {
+    const newConcierge = {
+      ...payload,
+      role: UserRole.Concierge,
+      created_by: admin_id,
+      created_at: new Date(),
+      updated_at: new Date()
+    }
+
+    const result = await databaseService.users.insertOne(newConcierge)
+
+    return { concierge_id: result.insertedId }
+  }
 }
 
 const adminService = new AdminService()

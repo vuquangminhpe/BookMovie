@@ -697,3 +697,12 @@ export const sendPaymentFailedEmailController = async (req: Request, res: Respon
     result
   })
 }
+export const adminCreateConciergeController = async (req: Request, res: Response) => {
+  const { user_id: admin_id } = req.decode_authorization as TokenPayload
+
+  const result = await adminService.createConcierge(admin_id, req.body)
+  res.json({
+    message: ADMIN_MESSAGES.CREATE_CONCIERGE_SUCCESS,
+    result
+  })
+}

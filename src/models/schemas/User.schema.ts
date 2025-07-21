@@ -4,7 +4,8 @@ import { UserVerifyStatus } from '../../constants/enums'
 export enum UserRole {
   Customer = 'customer',
   Staff = 'staff',
-  Admin = 'admin'
+  Admin = 'admin',
+  Concierge = 'concierge'
 }
 
 export default class UserType {
