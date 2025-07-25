@@ -19,9 +19,9 @@ export const revenueStatsValidator = validate(
         },
         custom: {
           options: (value, { req }) => {
-            if (value && req.query.end_date) {
+            if (value && req?.query?.end_date) {
               const startDate = new Date(value)
-              const endDate = new Date(req.query.end_date)
+              const endDate = new Date(req?.query?.end_date)
               if (startDate > endDate) {
                 throw new Error('Start date must be before or equal to end date')
               }
@@ -38,8 +38,8 @@ export const revenueStatsValidator = validate(
         },
         custom: {
           options: (value, { req }) => {
-            if (value && req.query.start_date) {
-              const startDate = new Date(req.query.start_date)
+            if (value && req?.query?.start_date) {
+              const startDate = new Date(req?.query?.start_date)
               const endDate = new Date(value)
               if (endDate < startDate) {
                 throw new Error('End date must be after or equal to start date')
