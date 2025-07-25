@@ -72,6 +72,12 @@ import {
   getTheaterAnalyticsByIdController
 } from '../controllers/staff/controllers/theater-analytics.controllers'
 
+// Import revenue stats controllers
+import { getRevenueStatsController } from '../controllers/staff/controllers/revenue-stats.controllers'
+
+// Import revenue stats middlewares
+import { revenueStatsValidator } from '../middlewares/staff/revenue-stats.middlewares'
+
 const staffRouter = Router()
 
 // Apply authentication and staff role middleware to all routes
@@ -615,6 +621,23 @@ staffRouter.get('/analytics/all-theaters', wrapAsync(getAllTheatersAnalyticsCont
  * Header: { Authorization: Bearer <access_token> }
  */
 staffRouter.get('/analytics/theater/:theater_id', wrapAsync(getTheaterAnalyticsByIdController))
+
+/**
+ * Description: Get revenue statistics for staff's managed theaters
+ * Path: /staff/revenue-stats
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ * Query Parameters:
+ *   - period?: 'day' | 'week' | 'month' (default: 'day')
+ *   - start_date?: string (YYYY-MM-DD format)
+ *   - end_date?: string (YYYY-MM-DD format)
+ *   - page?: number (default: 1)
+ *   - limit?: number (default: 10, max: 100)
+ *   - sort_by?: 'date' | 'revenue' | 'bookings' (default: 'date')
+ *   - sort_order?: 'asc' | 'desc' (default: 'desc')
+ * Response: RevenueStatsPaginatedResponse with revenue data, pagination info, and summary
+ */
+staffRouter.get('/revenue-stats', revenueStatsValidator, wrapAsync(getRevenueStatsController))
 
 /**
  * Description: Get theater statistics

@@ -1818,4 +1818,144 @@
  *         description: No theater found
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
+ *
+ * /staff/revenue-stats:
+ *   get:
+ *     summary: Get revenue statistics
+ *     description: Staff only - Get revenue statistics for theaters managed by the staff, with filtering by period (day/week/month) and date range
+ *     tags: [Staff]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [day, week, month]
+ *           default: day
+ *         description: Time period for grouping statistics
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-01"
+ *         description: Start date for filtering (YYYY-MM-DD format)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-31"
+ *         description: End date for filtering (YYYY-MM-DD format)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           enum: [date, revenue, bookings]
+ *           default: date
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Revenue statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get revenue statistics success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           period:
+ *                             type: string
+ *                             description: Period type (day/week/month)
+ *                           date:
+ *                             type: string
+ *                             description: Date or period identifier
+ *                           revenue:
+ *                             type: number
+ *                             description: Total revenue for this period
+ *                           bookings_count:
+ *                             type: integer
+ *                             description: Number of bookings in this period
+ *                           average_booking_value:
+ *                             type: number
+ *                             description: Average value per booking
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         current_page:
+ *                           type: integer
+ *                         total_pages:
+ *                           type: integer
+ *                         total_items:
+ *                           type: integer
+ *                         items_per_page:
+ *                           type: integer
+ *                         has_next:
+ *                           type: boolean
+ *                         has_prev:
+ *                           type: boolean
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         total_revenue:
+ *                           type: number
+ *                           description: Total revenue across all periods
+ *                         total_bookings:
+ *                           type: integer
+ *                           description: Total bookings across all periods
+ *                         average_revenue_per_period:
+ *                           type: number
+ *                           description: Average revenue per period
+ *                         period_type:
+ *                           type: string
+ *                           description: The period type used for grouping
+ *                         date_range:
+ *                           type: object
+ *                           properties:
+ *                             start:
+ *                               type: string
+ *                               format: date
+ *                             end:
+ *                               type: string
+ *                               format: date
+ *       400:
+ *         description: Invalid query parameters
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as staff
+ *       404:
+ *         description: No theaters found for this staff
  */
