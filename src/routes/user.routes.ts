@@ -48,7 +48,7 @@ usersRouter.post('/login', loginValidator, wrapAsync(loginController))
 usersRouter.get('/oauth/google', wrapAsync(oauthController))
 usersRouter.post('/verify_status_user', wrapAsync(verifyEmailCodeController))
 usersRouter.post('/register', registerValidator, wrapAsync(registerController))
-usersRouter.post('/logout', AccessTokenValidator, RefreshTokenValidator, wrapAsync(logoutController))
+usersRouter.post('/logout', AccessTokenValidator, wrapAsync(logoutController))
 usersRouter.get('/get_all_user', AccessTokenValidator, wrapAsync(getAllUsersController))
 /**
  * Description: refresh token
