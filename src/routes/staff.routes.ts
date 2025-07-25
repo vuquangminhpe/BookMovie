@@ -567,11 +567,11 @@ staffRouter.get(
                   {
                     $map: {
                       input: '$theater_info',
-                      as: 'theater',
+                      as: 'theaters',
                       in: {
-                        _id: '$$screen._id',
-                        name: '$$screen.name',
-                        type: '$$screen.location'
+                        _id: '$$theaters._id',
+                        name: '$$theaters.name',
+                        type: '$$theaters.location'
                       }
                     }
                   },
