@@ -233,7 +233,7 @@ class StaffRevenueStatsService {
 
     // Format kết quả
     const data: RevenueStatsResponse[] = results.map((item) => {
-      const baseData = {
+      const baseData: RevenueStatsResponse = {
         period: period,
         date: item.date_string,
         revenue: item.revenue,

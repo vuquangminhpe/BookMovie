@@ -23,7 +23,7 @@ class FeedbackService {
         title: payload.title,
         content: payload.content,
         is_spoiler: payload.is_spoiler || false,
-        status: FeedbackStatus.PENDING
+        status: FeedbackStatus.APPROVED
       })
     )
 
