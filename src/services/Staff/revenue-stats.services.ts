@@ -1,16 +1,22 @@
 import { ObjectId } from 'mongodb'
 import databaseService from '../database.services'
 import { BookingStatus, PaymentStatus } from '../../models/schemas/Booking.schema'
-import { RevenueStatsReqQuery, RevenueStatsResponse, RevenueStatsPaginatedResponse } from '../../models/request/Revenue.request'
+import {
+  RevenueStatsReqQuery,
+  RevenueStatsResponse,
+  RevenueStatsPaginatedResponse
+} from '../../models/request/Revenue.request'
 
 class StaffRevenueStatsService {
   async getRevenueStats(staff_id: string, query: RevenueStatsReqQuery): Promise<RevenueStatsPaginatedResponse> {
     const staffObjectId = new ObjectId(staff_id)
-    
+
     // Tìm các theater mà staff này quản lý
-    const theaters = await databaseService.theaters.find({
-      manager_id: staffObjectId
-    }).toArray()
+    const theaters = await databaseService.theaters
+      .find({
+        manager_id: staffObjectId
+      })
+      .toArray()
 
     if (theaters.length === 0) {
       return {
@@ -36,8 +42,8 @@ class StaffRevenueStatsService {
       }
     }
 
-    const theaterIds = theaters.map(theater => theater._id)
-    
+    const theaterIds = theaters.map((theater) => theater._id)
+
     // Xử lý tham số query
     const period = query.period || 'day'
     const page = parseInt(query.page || '1')
@@ -59,7 +65,7 @@ class StaffRevenueStatsService {
       // Default date range based on period
       endDate = new Date(now)
       endDate.setHours(23, 59, 59, 999)
-      
+
       switch (period) {
         case 'day':
           startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
@@ -113,7 +119,7 @@ class StaffRevenueStatsService {
     }
 
     // Aggregation pipeline để lấy dữ liệu thống kê
-    const pipeline = [
+    const pipeline: any[] = [
       {
         $match: {
           theater_id: { $in: theaterIds },
@@ -166,16 +172,12 @@ class StaffRevenueStatsService {
 
     // Thêm sort và pagination
     const sortField = sortBy === 'date' ? 'date_string' : sortBy === 'revenue' ? 'revenue' : 'bookings_count'
-    pipeline.push(
-      { $sort: { [sortField]: sortOrder } },
-      { $skip: skip },
-      { $limit: limit }
-    )
+    pipeline.push({ $sort: { [sortField]: sortOrder } }, { $skip: skip }, { $limit: limit })
 
     const results = await databaseService.bookings.aggregate(pipeline).toArray()
 
     // Format kết quả
-    const data: RevenueStatsResponse[] = results.map(item => ({
+    const data: RevenueStatsResponse[] = results.map((item) => ({
       period: period,
       date: item.date_string,
       revenue: item.revenue,
