@@ -91,7 +91,7 @@ class BookingExpirationService {
         await notificationService.createNotification({
           user_id: booking.user_id.toString(),
           title: 'Booking Expired',
-          content: `Your booking #${booking.ticket_code} has expired due to non-payment within 5 minutes.`,
+          content: `Your booking #${booking.ticket_code} has expired due to non-payment within 20 minutes.`,
           type: NotificationTypes.BOOKING,
           related_id: booking_id
         })
@@ -141,8 +141,8 @@ class BookingExpirationService {
       return null
     }
 
-    // Calculate expiration time (5 minutes from booking_time)
-    const expirationTime = new Date(booking.booking_time.getTime() + 5 * 60 * 1000)
+    // Calculate expiration time (20 minutes from booking_time)
+    const expirationTime = new Date(booking.booking_time.getTime() + 20 * 60 * 1000)
     const timeRemaining = Math.max(0, expirationTime.getTime() - Date.now())
 
     return {
@@ -172,12 +172,12 @@ class BookingExpirationService {
       .find({
         status: BookingStatus.PENDING,
         payment_status: PaymentStatus.PENDING,
-        booking_time: { $gte: new Date(Date.now() - 10 * 60 * 1000) } // Trong 10 phút gần nhất
+        booking_time: { $gte: new Date(Date.now() - 25 * 60 * 1000) } // Trong 25 phút gần nhất
       })
       .toArray()
 
     for (const booking of pendingBookings) {
-      const expirationTime = new Date(booking.booking_time.getTime() + 5 * 60 * 1000)
+      const expirationTime = new Date(booking.booking_time.getTime() + 20 * 60 * 1000)
       const timeRemaining = expirationTime.getTime() - Date.now()
 
       if (timeRemaining > 0) {

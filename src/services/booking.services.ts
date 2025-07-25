@@ -48,7 +48,7 @@ class BookingService {
       // Unlock seats
       await seatLockService.unlockSeats(booking.showtime_id.toString(), booking.user_id.toString())
 
-      console.log(`Auto-expired booking ${booking_id} after 5 minutes`)
+      console.log(`Auto-expired booking ${booking_id} after 20 minutes`)
     }
   }
   async createBooking(user_id: string, payload: CreateBookingReqBody) {
@@ -163,13 +163,13 @@ class BookingService {
         }
       )
 
-      // 2. Setup auto-cancel booking sau 5 phút
+      // 2. Setup auto-cancel booking sau 20 phút
       setTimeout(
         async () => {
           await this.autoExpireBooking(booking_id.toString())
         },
-        5 * 60 * 1000
-      ) // 5 phút
+        20 * 60 * 1000
+      ) // 20 phút
 
       // Fetch the booking with complete details
       const booking = await this.getBookingDetails(booking_id.toString())

@@ -193,7 +193,7 @@
  *                           type: string
  *                           format: date-time
  *                           example: "2024-01-15T14:35:00.000Z"
- *                           description: When the seat lock expires (5 minutes from now)
+ *                           description: When the seat lock expires (20 minutes from now)
  *                     expiration_info:
  *                       $ref: '#/components/schemas/BookingExpiration'
  *                       description: Booking expiration information

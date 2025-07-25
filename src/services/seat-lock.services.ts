@@ -5,7 +5,7 @@ import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
 
 class SeatLockService {
-  // Lock ghế tạm thời (5 phút)
+  // Lock ghế tạm thời (20 phút)
   async lockSeats(
     booking_id: string,
     showtime_id: string,
@@ -13,7 +13,7 @@ class SeatLockService {
     seats: Array<{ row: string; number: number }>
   ) {
     const seatLockId = new ObjectId()
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 phút
+    const expiresAt = new Date(Date.now() + 20 * 60 * 1000) // 20 phút
 
     // Kiểm tra ghế đã được lock chưa
     const existingLocks = await databaseService.seatLocks
@@ -119,7 +119,7 @@ class SeatLockService {
   }
 
   // Extend lock time (khi user đang trong quá trình thanh toán)
-  async extendLock(showtime_id: string, user_id: string, additionalMinutes: number = 5) {
+  async extendLock(showtime_id: string, user_id: string, additionalMinutes: number = 20) {
     const newExpireTime = new Date(Date.now() + additionalMinutes * 60 * 1000)
 
     await databaseService.seatLocks.updateMany(
