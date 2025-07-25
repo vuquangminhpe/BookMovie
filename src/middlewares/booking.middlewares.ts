@@ -84,7 +84,18 @@ export const createBookingValidator = validate(
               const existingBookings = await databaseService.bookings
                 .find({
                   showtime_id: new ObjectId(showtime_id as string),
-                  status: { $in: [BookingStatus.CONFIRMED, BookingStatus.PENDING] },
+                  $or: [
+                    {
+                      // Truly booked seats (payment completed)
+                      status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED, BookingStatus.USED] },
+                      payment_status: PaymentStatus.COMPLETED
+                    },
+                    {
+                      // Temporarily locked seats (payment in progress)
+                      status: BookingStatus.PENDING,
+                      payment_status: PaymentStatus.PENDING
+                    }
+                  ],
                   'seats.row': { $in: value.map((seat: any) => seat.row) },
                   'seats.number': { $in: value.map((seat: any) => seat.number) }
                 })

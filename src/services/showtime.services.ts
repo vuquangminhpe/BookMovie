@@ -6,7 +6,7 @@ import { CreateShowtimeReqBody, GetShowtimesReqQuery, UpdateShowtimeReqBody } fr
 import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
 import { SHOWTIME_MESSAGES } from '../constants/messages'
-import { BookingStatus } from '../models/schemas/Booking.schema'
+import { BookingStatus, PaymentStatus } from '../models/schemas/Booking.schema'
 
 class ShowtimeService {
   async createShowtime(payload: CreateShowtimeReqBody) {
@@ -195,20 +195,48 @@ class ShowtimeService {
         databaseService.screens.findOne({ _id: showtime.screen_id })
       ])
 
+      // Get bookings that should be considered as "booked"
+      // 1. CONFIRMED/COMPLETED bookings with COMPLETED payment (truly booked)
+      // 2. PENDING bookings with PENDING payment (temporarily locked during payment process)
       const bookings = await databaseService.bookings
         .find({
           showtime_id: new ObjectId(showtime_id),
-          status: { $ne: BookingStatus.CANCELLED }
+          $or: [
+            {
+              // Truly booked seats (payment completed)
+              status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED, BookingStatus.USED] },
+              payment_status: PaymentStatus.COMPLETED
+            },
+            {
+              // Temporarily locked seats (payment in progress)
+              status: BookingStatus.PENDING,
+              payment_status: PaymentStatus.PENDING
+            }
+          ]
         })
         .toArray()
 
-      // Extract all booked seats
-      const bookedSeats = bookings.flatMap((booking) =>
-        booking.seats.map((seat) => ({
-          row: seat.row,
-          number: seat.number
-        }))
-      )
+      // Separate truly booked seats from temporarily locked seats
+      const trulyBookedSeats: Array<{ row: string; number: number }> = []
+      const temporarilyLockedSeats: Array<{ row: string; number: number }> = []
+
+      bookings.forEach((booking) => {
+        booking.seats.forEach((seat) => {
+          const seatInfo = {
+            row: seat.row,
+            number: seat.number
+          }
+
+          if (booking.payment_status === PaymentStatus.COMPLETED) {
+            trulyBookedSeats.push(seatInfo)
+          } else if (booking.status === BookingStatus.PENDING && booking.payment_status === PaymentStatus.PENDING) {
+            temporarilyLockedSeats.push(seatInfo)
+          }
+        })
+      })
+
+      // For backward compatibility, combine both for booked_seats
+      const bookedSeats = [...trulyBookedSeats, ...temporarilyLockedSeats]
 
       return {
         ...showtime,
@@ -241,7 +269,9 @@ class ShowtimeService {
               seat_layout: screen.seat_layout
             }
           : null,
-        booked_seats: bookedSeats
+        booked_seats: bookedSeats,
+        truly_booked_seats: trulyBookedSeats,
+        temporarily_locked_seats: temporarilyLockedSeats
       }
     }
 

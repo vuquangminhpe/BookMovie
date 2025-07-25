@@ -91,11 +91,22 @@ class BookingService {
     )
 
     try {
-      // Verify seat availability (kiểm tra booking đã confirm)
+      // Verify seat availability (kiểm tra booking đã confirm hoặc đang pending payment)
       const bookedSeats = await databaseService.bookings
         .find({
           showtime_id: new ObjectId(payload.showtime_id),
-          status: { $in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] }
+          $or: [
+            {
+              // Truly booked seats (payment completed)
+              status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED, BookingStatus.USED] },
+              payment_status: PaymentStatus.COMPLETED
+            },
+            {
+              // Temporarily locked seats (payment in progress)
+              status: BookingStatus.PENDING,
+              payment_status: PaymentStatus.PENDING
+            }
+          ]
         })
         .toArray()
 
