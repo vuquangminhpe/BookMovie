@@ -481,6 +481,14 @@ staffRouter.get(
             }
           },
           {
+            $lookup: {
+              from: 'theaters',
+              localField: 'theater_id',
+              foreignField: '_id',
+              as: 'theater_info'
+            }
+          },
+          {
             $project: {
               _id: 1,
               user_id: 1,
@@ -571,7 +579,7 @@ staffRouter.get(
                       in: {
                         _id: '$$theaters._id',
                         name: '$$theaters.name',
-                        type: '$$theaters.location'
+                        location: '$$theaters.location'
                       }
                     }
                   },
