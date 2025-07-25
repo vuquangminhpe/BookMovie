@@ -1,5 +1,9 @@
 import { checkSchema } from 'express-validator'
 import { validate } from '../../utils/validation'
+import { ObjectId } from 'mongodb'
+import databaseService from '../../services/database.services'
+import { ErrorWithStatus } from '../../models/Errors'
+import HTTP_STATUS from '../../constants/httpStatus'
 
 export const revenueStatsValidator = validate(
   checkSchema(
@@ -84,6 +88,55 @@ export const revenueStatsValidator = validate(
         isIn: {
           options: [['asc', 'desc']],
           errorMessage: 'Sort order must be either asc or desc'
+        }
+      },
+      theater_id: {
+        optional: true,
+        custom: {
+          options: async (value) => {
+            if (!ObjectId.isValid(value)) {
+              throw new ErrorWithStatus({
+                message: 'Invalid theater ID format',
+                status: HTTP_STATUS.BAD_REQUEST
+              })
+            }
+            const theater = await databaseService.theaters.findOne({ _id: new ObjectId(value) })
+            if (!theater) {
+              throw new ErrorWithStatus({
+                message: 'Theater not found',
+                status: HTTP_STATUS.NOT_FOUND
+              })
+            }
+            return true
+          }
+        }
+      },
+      movie_id: {
+        optional: true,
+        custom: {
+          options: async (value) => {
+            if (!ObjectId.isValid(value)) {
+              throw new ErrorWithStatus({
+                message: 'Invalid movie ID format',
+                status: HTTP_STATUS.BAD_REQUEST
+              })
+            }
+            const movie = await databaseService.movies.findOne({ _id: new ObjectId(value) })
+            if (!movie) {
+              throw new ErrorWithStatus({
+                message: 'Movie not found',
+                status: HTTP_STATUS.NOT_FOUND
+              })
+            }
+            return true
+          }
+        }
+      },
+      group_by: {
+        optional: true,
+        isIn: {
+          options: [['date', 'theater', 'movie']],
+          errorMessage: 'Group by must be one of: date, theater, movie'
         }
       }
     },

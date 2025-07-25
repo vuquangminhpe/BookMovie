@@ -623,7 +623,7 @@ staffRouter.get('/analytics/all-theaters', wrapAsync(getAllTheatersAnalyticsCont
 staffRouter.get('/analytics/theater/:theater_id', wrapAsync(getTheaterAnalyticsByIdController))
 
 /**
- * Description: Get revenue statistics for staff's managed theaters
+ * Description: Get revenue statistics for staff's managed theaters with advanced filtering
  * Path: /staff/revenue-stats
  * Method: GET
  * Header: { Authorization: Bearer <access_token> }
@@ -635,7 +635,10 @@ staffRouter.get('/analytics/theater/:theater_id', wrapAsync(getTheaterAnalyticsB
  *   - limit?: number (default: 10, max: 100)
  *   - sort_by?: 'date' | 'revenue' | 'bookings' (default: 'date')
  *   - sort_order?: 'asc' | 'desc' (default: 'desc')
- * Response: RevenueStatsPaginatedResponse with revenue data, pagination info, and summary
+ *   - theater_id?: string (filter by specific theater)
+ *   - movie_id?: string (filter by specific movie)
+ *   - group_by?: 'date' | 'theater' | 'movie' (group results by different criteria, default: 'date')
+ * Response: Enhanced RevenueStatsPaginatedResponse with detailed theater/movie info, tickets sold, occupancy rates, and comprehensive summary
  */
 staffRouter.get('/revenue-stats', revenueStatsValidator, wrapAsync(getRevenueStatsController))
 
