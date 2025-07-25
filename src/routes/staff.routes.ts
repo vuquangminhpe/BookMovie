@@ -561,6 +561,22 @@ staffRouter.get(
                   },
                   0
                 ]
+              },
+              theater_info: {
+                $arrayElemAt: [
+                  {
+                    $map: {
+                      input: '$theater_info',
+                      as: 'theater',
+                      in: {
+                        _id: '$$screen._id',
+                        name: '$$screen.name',
+                        type: '$$screen.location'
+                      }
+                    }
+                  },
+                  0
+                ]
               }
             }
           }
