@@ -186,5 +186,5 @@ usersRouter.get('/check-registration-status', wrapAsync(checkRegistrationStatusC
  * TICKET VERIFICATION
  * =============================================================================
  */
-usersRouter.post('/verify-ticket', RefreshTokenValidator, wrapAsync(verifyTicketQRController))
+usersRouter.post('/verify-ticket', AccessTokenValidator, wrapAsync(verifyTicketQRController))
 export default usersRouter
