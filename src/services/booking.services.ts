@@ -158,7 +158,7 @@ class BookingService {
           theater_id: showtime.theater_id,
           screen_id: showtime.screen_id,
           seats: seatsWithPrice,
-          total_amount: totalAmount,
+          total_amount: payload.total_amount || totalAmount,
           booking_time: new Date(),
           status: BookingStatus.PENDING,
           payment_status: PaymentStatus.PENDING

@@ -35,6 +35,8 @@ export const updateBookingController = async (
   res: Response
 ) => {
   const { booking_id } = req.params
+  console.log(req.body)
+
   const result = await bookingService.updateBooking(booking_id, req.body)
 
   res.json({
