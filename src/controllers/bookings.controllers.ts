@@ -141,8 +141,7 @@ export const verifyTicketQRController = async (req: Request, res: Response) => {
     })
   }
 
-  // Get booking by ticket code
-  const booking = await bookingService.getBookingByTicketCode(ticket_code)
+  const booking = await bookingService.getBookingByTicketCodes(ticket_code)
 
   if (!booking) {
     return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -167,6 +166,7 @@ export const verifyTicketQRController = async (req: Request, res: Response) => {
       verified_at: new Date()
     }
   })
+  await bookingService.getBookingByTicketCode(ticket_code)
 }
 export const getBookingExpirationInfoController = async (req: Request<BookingIdReqParams>, res: Response) => {
   const { booking_id } = req.params
