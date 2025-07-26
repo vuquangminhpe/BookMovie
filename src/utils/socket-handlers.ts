@@ -2,7 +2,115 @@ import { Server as SocketServer, Socket } from 'socket.io'
 import showtimeCleanupService from '../services/showtime-cleanup.services'
 import couponSocketService from '../services/coupon-socket.services'
 import paymentExpirationService from '../services/payment-expiration.services'
-import { triggerManualCleanup, getCleanupStats } from './cleanup'
+import { triggerManualCleanup, getCleanupStats, syncBookingPaymentStatuses } from './cleanup'
+import databaseService from '../services/database.services'
+import { ObjectId } from 'mongodb'
+import { BookingStatus, PaymentStatus } from '../models/schemas/Booking.schema'
+import seatLockService from '../services/seat-lock.services'
+
+// Helper function to sync booking status with payment status
+async function syncBookingWithPaymentStatus(booking_id: string) {
+  try {
+    const booking = await databaseService.bookings.findOne({
+      _id: new ObjectId(booking_id)
+    })
+
+    if (!booking) {
+      return {
+        success: false,
+        message: 'Booking not found',
+        updated: false
+      }
+    }
+
+    // Check if payment is cancelled but booking is not
+    if (booking.payment_status === PaymentStatus.CANCELLED && booking.status !== BookingStatus.CANCELLED) {
+      console.log(`🔄 Syncing booking ${booking_id}: payment cancelled, updating booking status`)
+
+      // Update booking status to cancelled
+      await databaseService.bookings.updateOne(
+        { _id: new ObjectId(booking_id) },
+        {
+          $set: {
+            status: BookingStatus.CANCELLED
+          },
+          $currentDate: { updated_at: true }
+        }
+      )
+
+      // Restore available seats in showtime
+      await databaseService.showtimes.updateOne(
+        { _id: booking.showtime_id },
+        {
+          $inc: { available_seats: booking.seats.length },
+          $currentDate: { updated_at: true }
+        }
+      )
+
+      // Release seat locks
+      await seatLockService.releaseSeatsByBookingId(booking_id)
+
+      return {
+        success: true,
+        message: 'Booking status synced with payment status',
+        updated: true,
+        old_status: booking.status,
+        new_status: BookingStatus.CANCELLED,
+        user_id: booking.user_id.toString()
+      }
+    }
+
+    // Check if payment is failed but booking is not cancelled
+    if (booking.payment_status === PaymentStatus.FAILED && booking.status !== BookingStatus.CANCELLED) {
+      console.log(`🔄 Syncing booking ${booking_id}: payment failed, updating booking status`)
+
+      // Update booking status to cancelled
+      await databaseService.bookings.updateOne(
+        { _id: new ObjectId(booking_id) },
+        {
+          $set: {
+            status: BookingStatus.CANCELLED
+          },
+          $currentDate: { updated_at: true }
+        }
+      )
+
+      // Restore available seats in showtime
+      await databaseService.showtimes.updateOne(
+        { _id: booking.showtime_id },
+        {
+          $inc: { available_seats: booking.seats.length },
+          $currentDate: { updated_at: true }
+        }
+      )
+
+      // Release seat locks
+      await seatLockService.releaseSeatsByBookingId(booking_id)
+
+      return {
+        success: true,
+        message: 'Booking status synced with failed payment',
+        updated: true,
+        old_status: booking.status,
+        new_status: BookingStatus.CANCELLED,
+        user_id: booking.user_id.toString()
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Booking and payment status are already in sync',
+      updated: false
+    }
+  } catch (error) {
+    console.error('❌ Error syncing booking with payment status:', error)
+    return {
+      success: false,
+      message: 'Error syncing booking status',
+      updated: false
+    }
+  }
+}
 
 export const setupSocketHandlers = (io: SocketServer) => {
   console.log('📡 Setting up socket handlers...')
@@ -153,6 +261,34 @@ const setupAdminCleanupHandlers = (socket: Socket) => {
       })
     } catch (error: any) {
       socket.emit('cleanup_stats', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+
+  // Manual booking-payment status sync (admin only)
+  socket.on('trigger_booking_payment_sync', async (data) => {
+    try {
+      console.log(`🔄 Manual booking-payment sync triggered by admin ${socket.id}`)
+
+      const result = await syncBookingPaymentStatuses()
+
+      // Broadcast to admin room
+      socket.broadcast.to('admin_room').emit('booking_payment_sync_completed', {
+        ...result,
+        triggered_by: data.admin_id || 'unknown',
+        timestamp: new Date().toISOString()
+      })
+
+      socket.emit('booking_payment_sync_result', {
+        success: true,
+        result,
+        message: `Booking-payment sync completed: ${result.synced} synced, ${result.errors} errors`
+      })
+    } catch (error: any) {
+      console.error('❌ Socket booking-payment sync error:', error)
+      socket.emit('booking_payment_sync_result', {
         success: false,
         error: error.message
       })
@@ -368,6 +504,56 @@ const setupPaymentExpirationHandlers = (socket: Socket) => {
     } catch (error: any) {
       console.error('❌ Socket clear payment expiration error:', error)
       socket.emit('clear_payment_expiration_result', {
+        success: false,
+        error: error.message
+      })
+    }
+  })
+
+  // Sync booking status with payment status (when payment is cancelled)
+  socket.on('sync_booking_payment_status', async (data) => {
+    try {
+      const { booking_id, admin_id } = data
+
+      if (!booking_id) {
+        socket.emit('sync_booking_payment_status_result', {
+          success: false,
+          error: 'Missing booking_id'
+        })
+        return
+      }
+
+      const result = await syncBookingWithPaymentStatus(booking_id)
+
+      socket.emit('sync_booking_payment_status_result', {
+        success: result.success,
+        booking_id,
+        message: result.message,
+        updated: result.updated
+      })
+
+      if (result.updated) {
+        // Notify admin room about the sync
+        socket.broadcast.to('admin_room').emit('booking_status_synced', {
+          booking_id,
+          old_status: result.old_status,
+          new_status: result.new_status,
+          synced_by: admin_id || 'system',
+          timestamp: new Date().toISOString()
+        })
+
+        // Notify user about booking cancellation
+        if (result.user_id) {
+          socket.to(`user_${result.user_id}`).emit('booking_cancelled', {
+            booking_id,
+            reason: 'Payment was cancelled',
+            timestamp: new Date().toISOString()
+          })
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Socket sync booking payment status error:', error)
+      socket.emit('sync_booking_payment_status_result', {
         success: false,
         error: error.message
       })
