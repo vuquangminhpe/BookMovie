@@ -19,7 +19,7 @@ interface BookingType {
   ticket_code?: string
   status: BookingStatus
   payment_status: PaymentStatus
-
+  coupon_id?: string
   created_at?: Date
   updated_at?: Date
 }
@@ -54,6 +54,7 @@ export default class Booking {
     price: number
   }>
   total_amount: number
+  coupon_discount?: string
   booking_time: Date
   ticket_code: string
   status: BookingStatus
