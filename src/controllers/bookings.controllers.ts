@@ -65,7 +65,7 @@ export const getBookingByIdController = async (req: Request<BookingIdReqParams>,
 
 export const getBookingByTicketCodeController = async (req: Request<TicketCodeReqParams>, res: Response) => {
   const { ticket_code } = req.params
-  const result = await bookingService.getBookingByTicketCode(ticket_code)
+  const result = await bookingService.getBookingByTicketCodes(ticket_code)
   res.json({
     message: BOOKING_MESSAGES.GET_BOOKING_SUCCESS,
     result
