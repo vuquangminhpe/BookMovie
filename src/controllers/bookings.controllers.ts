@@ -92,7 +92,7 @@ export const getTicketQRController = async (req: Request<TicketCodeReqParams>, r
   const { ticket_code } = req.params
 
   // Get booking WITHOUT marking as USED (just for info)
-  const booking = await databaseService.bookings.findOne({ ticket_code })
+  const booking = await bookingService.getBookingByTicketCodes(ticket_code)
 
   if (!booking) {
     return res.status(HTTP_STATUS.NOT_FOUND).json({

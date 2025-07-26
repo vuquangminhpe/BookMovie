@@ -359,26 +359,9 @@ class BookingService {
   }
 
   async getBookingByTicketCode(ticket_code: string) {
-    // 🚨 DEBUG: Log who is calling this method
-    const stack = new Error().stack
-    console.log('🔍 getBookingByTicketCode called for ticket:', ticket_code)
-    console.log('📍 Call stack:', stack?.split('\n').slice(1, 5).join('\n'))
-    console.log('⏰ Timestamp:', new Date().toISOString())
-
     const booking = await databaseService.bookings.findOne({ ticket_code })
 
-    if (booking) {
-      console.log('🎫 Found booking:', {
-        id: booking._id,
-        status: booking.status,
-        payment_status: booking.payment_status,
-        user_id: booking.user_id
-      })
-    }
-
-    // 🚨 TEMPORARILY COMMENT OUT TO DEBUG
-    // await databaseService.bookings.updateOne({ ticket_code }, { $set: { status: BookingStatus.USED } })
-    console.log('⚠️ MARKING AS USED IS TEMPORARILY DISABLED FOR DEBUGGING')
+    await databaseService.bookings.updateOne({ ticket_code }, { $set: { status: BookingStatus.USED } })
 
     if (booking) {
       return this.getBookingDetails(booking._id.toString())
@@ -386,12 +369,19 @@ class BookingService {
 
     return null
   }
+  async getBookingByTicketCodes(ticket_code: string) {
+    const booking = await databaseService.bookings.findOne({ ticket_code })
 
+    if (booking) {
+      return this.getBookingDetails(booking._id.toString())
+    }
+
+    return null
+  }
   private async getBookingDetails(booking_id: string) {
     const booking = await databaseService.bookings.findOne({ _id: new ObjectId(booking_id) })
 
     if (booking) {
-      // Get movie, theater, and showtime details
       const [movie, theater, showtime, screen, payment] = await Promise.all([
         databaseService.movies.findOne({ _id: booking.movie_id }),
         databaseService.theaters.findOne({ _id: booking.theater_id }),
