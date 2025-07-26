@@ -9,6 +9,7 @@ export interface CreateBookingReqBody {
     number: number
     type: SeatType
   }>
+  total_amount?: number
 }
 
 export interface UpdateBookingStatusReqBody {

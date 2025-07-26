@@ -197,7 +197,6 @@ class PaymentService {
     }
 
     const payment_id = new ObjectId()
-
     // Create a PENDING payment record for Sepay
     await databaseService.payments.insertOne(
       new Payment({
@@ -207,7 +206,7 @@ class PaymentService {
         amount: booking.total_amount,
         payment_method: PaymentMethod.SEPAY,
         order_id: booking.ticket_code, // Use ticket_code as order_id for Sepay
-        status: PaymentStatus.PENDING, // ✅ Set as PENDING, not COMPLETED
+        status: PaymentStatus.PENDING, //  Set as PENDING, not COMPLETED
         transaction_id: '',
         payment_url: '',
         bank_code: '',
