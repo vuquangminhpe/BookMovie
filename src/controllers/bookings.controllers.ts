@@ -91,7 +91,8 @@ export const updateBookingStatusController = async (
 export const getTicketQRController = async (req: Request<TicketCodeReqParams>, res: Response) => {
   const { ticket_code } = req.params
 
-  const booking = await bookingService.getBookingByTicketCode(ticket_code)
+  // Get booking WITHOUT marking as USED (just for info)
+  const booking = await databaseService.bookings.findOne({ ticket_code })
 
   if (!booking) {
     return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -106,6 +107,7 @@ export const getTicketQRController = async (req: Request<TicketCodeReqParams>, r
       message: 'You do not have permission to access this ticket'
     })
   }
+
   const result = await bookingService.generateTicketQR(ticket_code)
 
   res.json({

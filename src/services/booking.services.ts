@@ -359,8 +359,27 @@ class BookingService {
   }
 
   async getBookingByTicketCode(ticket_code: string) {
+    // 🚨 DEBUG: Log who is calling this method
+    const stack = new Error().stack
+    console.log('🔍 getBookingByTicketCode called for ticket:', ticket_code)
+    console.log('📍 Call stack:', stack?.split('\n').slice(1, 5).join('\n'))
+    console.log('⏰ Timestamp:', new Date().toISOString())
+
     const booking = await databaseService.bookings.findOne({ ticket_code })
-    await databaseService.bookings.updateOne({ ticket_code }, { $set: { status: BookingStatus.USED } })
+
+    if (booking) {
+      console.log('🎫 Found booking:', {
+        id: booking._id,
+        status: booking.status,
+        payment_status: booking.payment_status,
+        user_id: booking.user_id
+      })
+    }
+
+    // 🚨 TEMPORARILY COMMENT OUT TO DEBUG
+    // await databaseService.bookings.updateOne({ ticket_code }, { $set: { status: BookingStatus.USED } })
+    console.log('⚠️ MARKING AS USED IS TEMPORARILY DISABLED FOR DEBUGGING')
+
     if (booking) {
       return this.getBookingDetails(booking._id.toString())
     }
