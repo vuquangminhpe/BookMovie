@@ -134,6 +134,15 @@ class SeatLockService {
 
     return { new_expire_time: newExpireTime }
   }
+
+  async releaseSeatsByBookingId(booking_id: string) {
+    const result = await databaseService.seatLocks.deleteMany({
+      booking_id: new ObjectId(booking_id)
+    })
+
+    console.log(`Released ${result.deletedCount} seat locks for booking ${booking_id}`)
+    return result.deletedCount
+  }
 }
 
 const seatLockService = new SeatLockService()

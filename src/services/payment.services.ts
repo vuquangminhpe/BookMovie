@@ -18,6 +18,7 @@ import { Request } from 'express'
 import bookingExpirationService from './booking-expiration.services'
 import couponSocketService from './coupon-socket.services'
 import paymentExpirationService from './payment-expiration.services'
+import seatLockService from './seat-lock.services'
 
 class PaymentService {
   // Sort object for VNPay signature generation
@@ -118,6 +119,9 @@ class PaymentService {
           }
         )
 
+        // Remove seat locks since payment is completed
+        await seatLockService.releaseSeatsByBookingId(payload.booking_id)
+
         // Check and assign coupons based on booking total
         await couponSocketService.checkAndAssignCoupons(user_id, booking.total_amount)
 
@@ -155,6 +159,9 @@ class PaymentService {
         $currentDate: { updated_at: true }
       }
     )
+
+    // Remove seat locks since payment is completed
+    await seatLockService.releaseSeatsByBookingId(payload.booking_id)
 
     // Check and assign coupons based on booking total
     await couponSocketService.checkAndAssignCoupons(user_id, booking.total_amount)
@@ -220,11 +227,7 @@ class PaymentService {
     )
 
     // Create payment expiration job (15 minutes)
-    paymentExpirationService.createPaymentExpirationJob(
-      payment_id.toString(),
-      payload.booking_id,
-      user_id
-    )
+    paymentExpirationService.createPaymentExpirationJob(payment_id.toString(), payload.booking_id, user_id)
 
     return {
       payment_id: payment_id.toString(),
@@ -334,11 +337,7 @@ class PaymentService {
     )
 
     // Create payment expiration job (15 minutes)
-    paymentExpirationService.createPaymentExpirationJob(
-      payment_id.toString(),
-      payload.booking_id,
-      user_id
-    )
+    paymentExpirationService.createPaymentExpirationJob(payment_id.toString(), payload.booking_id, user_id)
 
     return {
       payment_id: payment_id.toString(),
@@ -453,6 +452,9 @@ class PaymentService {
             $currentDate: { updated_at: true }
           }
         )
+
+        // Remove seat locks since payment is completed
+        await seatLockService.releaseSeatsByBookingId(booking_id)
 
         // Check and assign coupons based on booking total
         const booking = await databaseService.bookings.findOne({ _id: new ObjectId(booking_id) })
@@ -659,6 +661,9 @@ class PaymentService {
           $currentDate: { updated_at: true }
         }
       )
+
+      // Remove seat locks since payment is completed
+      await seatLockService.releaseSeatsByBookingId(payment.booking_id.toString())
     } else if (payload.status === PaymentStatus.FAILED) {
       await databaseService.bookings.updateOne(
         { _id: payment.booking_id },

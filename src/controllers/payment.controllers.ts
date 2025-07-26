@@ -17,6 +17,7 @@ import databaseService from '~/services/database.services'
 import { ObjectId } from 'mongodb'
 import { BookingStatus, PaymentStatus } from '~/models/schemas/Booking.schema'
 import paymentExpirationService from '~/services/payment-expiration.services'
+import seatLockService from '~/services/seat-lock.services'
 
 export const createPaymentController = async (
   req: Request<ParamsDictionary, any, CreatePaymentReqBody>,
@@ -547,7 +548,7 @@ export const updatePaymentStatusController = async (
 
 export const sepayPaymentCallbackController = async (req: Request, res: Response) => {
   try {
-    console.log('🏦 Sepay webhook received:', req.body)
+    console.log('Sepay webhook received:', req.body)
 
     const sepayData = req.body
 
@@ -574,7 +575,7 @@ export const sepayPaymentCallbackController = async (req: Request, res: Response
     }
 
     if (booking.payment_status === PaymentStatus.COMPLETED) {
-      console.log(`✅ Booking ${booking._id} already paid`)
+      console.log(`Booking ${booking._id} already paid`)
       return res.json({
         success: true,
         message: 'Payment already processed'
@@ -582,7 +583,7 @@ export const sepayPaymentCallbackController = async (req: Request, res: Response
     }
 
     if (transferAmount < booking.total_amount) {
-      console.error(`❌ Insufficient payment amount. Expected: ${booking.total_amount}, Received: ${transferAmount}`)
+      console.error(`Insufficient payment amount. Expected: ${booking.total_amount}, Received: ${transferAmount}`)
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         message: 'Insufficient payment amount'
@@ -646,6 +647,9 @@ export const sepayPaymentCallbackController = async (req: Request, res: Response
       }
     )
 
+    // Remove seat locks since payment is completed
+    await seatLockService.releaseSeatsByBookingId(booking._id.toString())
+
     const [user, movie, theater, showtime, payment] = await Promise.all([
       databaseService.users.findOne({ _id: booking.user_id }),
       databaseService.movies.findOne({ _id: booking.movie_id }),
@@ -669,7 +673,7 @@ export const sepayPaymentCallbackController = async (req: Request, res: Response
       await sendEmail(user.email, emailSubject, emailContent)
     }
 
-    console.log(`✅ Sepay payment processed successfully for booking ${booking._id}`)
+    console.log(`Sepay payment processed successfully for booking ${booking._id}`)
 
     res.json({
       success: true,
@@ -677,7 +681,7 @@ export const sepayPaymentCallbackController = async (req: Request, res: Response
       booking_id: booking._id.toString()
     })
   } catch (error) {
-    console.error('❌ Sepay webhook error:', error)
+    console.error('Sepay webhook error:', error)
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Internal server error'

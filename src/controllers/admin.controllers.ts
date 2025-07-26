@@ -31,6 +31,7 @@ import {
 import HTTP_STATUS from '~/constants/httpStatus'
 import { ErrorWithStatus } from '~/models/Errors'
 import { BookingStatus, PaymentStatus } from '~/models/schemas/Booking.schema'
+import seatLockService from '~/services/seat-lock.services'
 
 // User Management
 export const getUsersController = async (req: Request<ParamsDictionary, any, any, GetUsersReqQuery>, res: Response) => {
@@ -469,6 +470,11 @@ export const adminUpdatePaymentStatusController = async (req: Request, res: Resp
         $currentDate: { updated_at: true }
       }
     )
+
+    // Remove seat locks if payment is completed
+    if (status === PaymentStatus.COMPLETED) {
+      await seatLockService.releaseSeatsByBookingId(payment.booking_id.toString())
+    }
   }
 
   res.json({
