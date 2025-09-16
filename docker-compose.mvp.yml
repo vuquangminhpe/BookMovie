@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: bookmovie-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: bookmovie_mvp
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - bookmovie-network
+
+  # Redis Cache (Optional for MVP)
+  redis:
+    image: redis:7-alpine
+    container_name: bookmovie-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - bookmovie-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: bookmovie-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/bookmovie_mvp?authSource=admin
+      REDIS_URL: redis://redis:6379
+      
+      # JWT Secrets (Change these in production!)
+      JWT_SECRET_ACCESS_TOKEN: your-super-secret-access-token-key-change-in-production
+      JWT_SECRET_REFRESH_TOKEN: your-super-secret-refresh-token-key-change-in-production
+      JWT_SECRET_EMAIL_VERIFY_TOKEN: your-super-secret-email-verify-token-key-change-in-production
+      JWT_SECRET_FORGOT_PASSWORD_TOKEN: your-super-secret-forgot-password-token-key-change-in-production
+      
+      # Token Expiry
+      ACCESS_TOKEN_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+      EMAIL_VERIFY_TOKEN_EXPIRES_IN: 7d
+      FORGOT_PASSWORD_TOKEN_EXPIRES_IN: 7d
+      
+      # Password encryption
+      PASSWORD_SECRET: your-password-secret-key-change-in-production
+      
+      # Email Service (Optional for MVP - use mailtrap or similar for testing)
+      SENDGRID_API_KEY: ""
+      MAILJET_API_KEY: ""
+      MAILJET_SECRET_KEY: ""
+      
+      # AWS S3 (Optional for MVP - can use local file storage)
+      AWS_ACCESS_KEY_ID: ""
+      AWS_SECRET_ACCESS_KEY: ""
+      S3_BUCKET_NAME: ""
+      AWS_REGION: us-east-1
+      
+      # Client URLs
+      CLIENT_URL: http://localhost:3000
+      CLIENT_REDIRECT_CALLBACK: http://localhost:3000/auth/callback
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - bookmovie-network
+
+  # Frontend (Optional - can be deployed separately)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: http://localhost:5001/api
+        REACT_APP_APP_NAME: BookMovie MVP
+    container_name: bookmovie-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - bookmovie-network
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: bookmovie-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - bookmovie-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  bookmovie-network:
+    driver: bridge
+
+# Health checks and monitoring
+x-healthcheck: &healthcheck
+  test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s

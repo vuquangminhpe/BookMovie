@@ -299,6 +299,7 @@
     "build": "rimraf ./dist && tsc && tsc-alias",
     "start:dev": "node dist/index.js --env=development",
     "start:prod": "node dist/index.js --env=production",
+    "seed:mvp": "ts-node src/scripts/seed-mvp-data.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prettier": "prettier --check .",
