@@ -26,9 +26,11 @@ class SeatLockService {
       .toArray()
 
     if (existingLocks.length > 0) {
-      // Kiểm tra có ghế nào bị trùng không (loại trừ ghế của chính user này)
+      // Kiểm tra có ghế nào bị trùng không (bỏ qua locks của chính user hiện tại)
       const lockedSeats: string[] = []
       existingLocks.forEach((lock) => {
+        console.log(lock.user_id.toString(), user_id)
+
         // Bỏ qua nếu lock này thuộc về chính user hiện tại
         if (lock.user_id.toString() === user_id) {
           return
