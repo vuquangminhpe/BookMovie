@@ -91,10 +91,11 @@ class BookingService {
     )
 
     try {
-      // Verify seat availability (kiểm tra booking đã confirm hoặc đang pending payment)
+      // Verify seat availability (kiểm tra booking đã confirm hoặc đang pending payment, bỏ qua booking của chính user)
       const bookedSeats = await databaseService.bookings
         .find({
           showtime_id: new ObjectId(payload.showtime_id),
+          user_id: { $ne: new ObjectId(user_id) }, // Bỏ qua booking của chính user hiện tại
           $or: [
             {
               // Truly booked seats (payment completed)
