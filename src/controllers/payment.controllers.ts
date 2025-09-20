@@ -548,11 +548,10 @@ export const updatePaymentStatusController = async (
 
 export const sepayPaymentCallbackController = async (req: Request, res: Response) => {
   try {
-    console.log('Sepay webhook received:', req.body)
-
     const sepayData = req.body
+    console.log(sepayData)
 
-    if (!sepayData.content || !sepayData.transferAmount || sepayData.transferType !== 'in') {
+    if (!sepayData.content || !sepayData.transferAmount) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
         message: 'Invalid Sepay webhook data'
@@ -560,7 +559,7 @@ export const sepayPaymentCallbackController = async (req: Request, res: Response
     }
 
     const ticketCode_Split = sepayData.content.trim().split(' ')[2]
-    const ticketCode = ticketCode_Split ? ticketCode_Split.split('-')[0] : sepayData.content.trim()
+    const ticketCode = ticketCode_Split ? ticketCode_Split.split('-')[0] : sepayData.code.trim()
     const transferAmount = sepayData.transferAmount
     const transactionId = sepayData.referenceCode || sepayData.id
 

@@ -96,10 +96,10 @@ export default class Booking {
   }
 
   private generateTicketCode(): string {
-    // Generate a random 8 character alphanumeric code
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let result = ''
-    for (let i = 0; i < 8; i++) {
+    const length = Math.floor(Math.random() * 2) + 8 
+    let result = 'BM'
+    for (let i = 0; i < length; i++) {
       result += characters.charAt(Math.floor(Math.random() * characters.length))
     }
     return result
