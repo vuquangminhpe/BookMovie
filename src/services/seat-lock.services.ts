@@ -15,10 +15,17 @@ class SeatLockService {
     const seatLockId = new ObjectId()
     const expiresAt = new Date(Date.now() + 20 * 60 * 1000) // 20 phút
 
-    // Kiểm tra ghế đã được lock chưa
+    // Xóa các lock cũ của user này trước (tránh duplicate)
+    await databaseService.seatLocks.deleteMany({
+      showtime_id: new ObjectId(showtime_id),
+      user_id: new ObjectId(user_id)
+    })
+
+    // Kiểm tra ghế đã được lock bởi user KHÁC chưa
     const existingLocks = await databaseService.seatLocks
       .find({
         showtime_id: new ObjectId(showtime_id),
+        user_id: { $ne: new ObjectId(user_id) }, // Chỉ check user khác
         expires_at: { $gt: new Date() },
         'seats.row': { $in: seats.map((s) => s.row) },
         'seats.number': { $in: seats.map((s) => s.number) }
@@ -26,16 +33,8 @@ class SeatLockService {
       .toArray()
 
     if (existingLocks.length > 0) {
-      // Kiểm tra có ghế nào bị trùng không (bỏ qua locks của chính user hiện tại)
       const lockedSeats: string[] = []
       existingLocks.forEach((lock) => {
-        console.log(lock.user_id.toString(), user_id)
-
-        // Bỏ qua nếu lock này thuộc về chính user hiện tại
-        if (lock.user_id.toString() === user_id) {
-          return
-        }
-
         lock.seats.forEach((seat) => {
           const seatId = `${seat.row}-${seat.number}`
           const isRequested = seats.some((s) => `${s.row}-${s.number}` === seatId)

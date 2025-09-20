@@ -91,6 +91,14 @@ class BookingService {
     )
 
     try {
+      // Xóa booking cũ của user này trước (tránh duplicate)
+      await databaseService.bookings.deleteMany({
+        showtime_id: new ObjectId(payload.showtime_id),
+        user_id: new ObjectId(user_id),
+        status: BookingStatus.PENDING,
+        payment_status: PaymentStatus.PENDING
+      })
+
       // Verify seat availability (kiểm tra booking đã confirm hoặc đang pending payment, bỏ qua booking của chính user)
       const bookedSeats = await databaseService.bookings
         .find({

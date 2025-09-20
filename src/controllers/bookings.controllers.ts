@@ -239,7 +239,14 @@ export const deleteSeatLocksByRowAndNumberController = async (req: Request, res:
   const { seats } = req.body
   const { user_id } = req.decode_authorization as TokenPayload
 
+  // Lấy booking_id trước khi thực hiện bất kỳ thay đổi nào
+  const seatLock = await databaseService.seatLocks.findOne({
+    showtime_id: new ObjectId(showtime_id),
+    user_id: new ObjectId(user_id)
+  })
+
   for (const seat of seats) {
+    // Xóa ghế khỏi seatLocks
     await databaseService.seatLocks.updateOne(
       {
         showtime_id: new ObjectId(showtime_id),
@@ -255,25 +262,25 @@ export const deleteSeatLocksByRowAndNumberController = async (req: Request, res:
       }
     )
 
-    const seatLock = await databaseService.seatLocks.findOne({
-      showtime_id: new ObjectId(showtime_id),
-      user_id: new ObjectId(user_id)
-    })
-    await databaseService.bookings.updateOne(
-      {
-        _id: new ObjectId(seatLock?.booking_id?.toString())
-      },
-      {
-        $pull: {
-          seats: {
-            row: seat.seat_row,
-            number: seat.seat_number
+    // Xóa ghế khỏi booking nếu có booking_id
+    if (seatLock?.booking_id) {
+      await databaseService.bookings.updateOne(
+        {
+          _id: new ObjectId(seatLock.booking_id.toString())
+        },
+        {
+          $pull: {
+            seats: {
+              row: seat.seat_row,
+              number: seat.seat_number
+            }
           }
         }
-      }
-    )
+      )
+    }
   }
 
+  // Xóa seatLock documents rỗng (không còn ghế nào)
   await databaseService.seatLocks.deleteMany({
     showtime_id: new ObjectId(showtime_id),
     user_id: new ObjectId(user_id),
