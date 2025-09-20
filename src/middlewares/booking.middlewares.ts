@@ -8,6 +8,7 @@ import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
 import { SeatType } from '../models/schemas/Screen.schema'
 import { ShowtimeStatus } from '../models/schemas/Showtime.schema'
+import { TokenPayload } from '~/models/request/User.request'
 
 export const createBookingValidator = validate(
   checkSchema(
@@ -56,7 +57,6 @@ export const createBookingValidator = validate(
             if (value.length === 0) {
               throw new Error('At least one seat must be selected')
             }
-
             // Validate each seat
             for (const seat of value) {
               if (!seat.row) {
@@ -100,21 +100,6 @@ export const createBookingValidator = validate(
                   'seats.number': { $in: value.map((seat: any) => seat.number) }
                 })
                 .toArray()
-
-              if (existingBookings.length > 0) {
-                // Check if any of the requested seats are already booked
-                for (const booking of existingBookings) {
-                  for (const bookedSeat of booking.seats) {
-                    const seatId = `${bookedSeat.row}-${bookedSeat.number}`
-                    if (seatIdentifiers.includes(seatId)) {
-                      throw new ErrorWithStatus({
-                        message: BOOKING_MESSAGES.SEATS_ALREADY_BOOKED,
-                        status: HTTP_STATUS.BAD_REQUEST
-                      })
-                    }
-                  }
-                }
-              }
             }
 
             return true
