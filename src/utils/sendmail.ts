@@ -135,11 +135,42 @@ const verificationCodeTemplate = `<html lang="en">
         border: 1px dashed #dee2e6;
       }
 
+      .verify-button {
+        text-align: center;
+        margin: 30px 0;
+      }
+
+      .verify-link {
+        display: inline-block;
+        padding: 15px 30px;
+        background-color: #4b7bec;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        transition: background-color 0.3s;
+      }
+
+      .verify-link:hover {
+        background-color: #3d64d1;
+      }
+
       .timer {
         text-align: center;
         color: #e74c3c;
         font-weight: bold;
         margin: 20px 0;
+      }
+
+      .fallback-link {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        word-break: break-all;
+        font-size: 12px;
+        color: #6c757d;
       }
 
       .footer {
@@ -161,11 +192,22 @@ const verificationCodeTemplate = `<html lang="en">
       <div class="content">
         <h3 class="greeting">Hello {{name}},</h3>
         <p>Thank you for registering. To complete your registration, please use the verification code below:</p>
-        
+
         <div class="verification-code">{{code}}</div>
-        
+
+        <div class="verify-button">
+          <a href="{{verifyLink}}" class="verify-link">Verify Email</a>
+        </div>
+
         <div class="timer">This code will expire in 2 minutes.</div>
-        
+
+        <p>Alternatively, you can copy and paste the verification code into the app manually.</p>
+
+        <div class="fallback-link">
+          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p>{{verifyLink}}</p>
+        </div>
+
         <p>If you did not request this verification, please ignore this email.</p>
       </div>
 
@@ -177,11 +219,27 @@ const verificationCodeTemplate = `<html lang="en">
 </html>`
 
 // Send verification code to user's email
-export const sendVerificationCode = async (toAddress: string, code: string): Promise<boolean> => {
+export const sendVerificationCode = async (
+  toAddress: string,
+  code: string,
+  clientUrl?: string,
+  accessToken?: string
+): Promise<boolean> => {
   const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
   const subject = 'Your Verification Code'
 
-  const htmlBody = verificationCodeTemplate.replace('{{name}}', name).replace('{{code}}', code)
+  // Tạo verification link với clientUrl và accessToken nếu có
+  let verifyLink = '#'
+  if (clientUrl && accessToken) {
+    verifyLink = `${clientUrl}/verify-email?code=${code}&token=${accessToken}`
+  } else if (clientUrl) {
+    verifyLink = `${clientUrl}/verify-email?code=${code}`
+  }
+
+  const htmlBody = verificationCodeTemplate
+    .replace('{{name}}', name)
+    .replace('{{code}}', code)
+    .replace(/{{verifyLink}}/g, verifyLink)
 
   return await sendEmail(toAddress, subject, htmlBody)
 }

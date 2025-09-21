@@ -10,7 +10,12 @@ import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
 import axios from 'axios'
 import { config } from 'dotenv'
-import { generateVerificationCode, sendVerificationCode, setupVerificationExpiration, sendPasswordResetLink } from '../utils/sendmail'
+import {
+  generateVerificationCode,
+  sendVerificationCode,
+  setupVerificationExpiration,
+  sendPasswordResetLink
+} from '../utils/sendmail'
 import { envConfig } from '../constants/config'
 import valkeyService from './valkey.services'
 import { GoogleGenerativeAI } from '@google/generative-ai'
@@ -193,9 +198,14 @@ class UserService {
       },
       verificationCode
     )
+    // Tạo accessToken tạm thời cho email verification
+    const tempAccessToken = await this.signAccessToken({
+      user_id: 'temp',
+      verify: UserVerifyStatus.Unverified
+    })
 
-    // Gửi mã xác thực qua email
-    const emailSent = await sendVerificationCode(payload.email, verificationCode)
+    // Gửi mã xác thực qua email với clientUrl và accessToken
+    const emailSent = await sendVerificationCode(payload.email, verificationCode, envConfig.client_url, tempAccessToken)
 
     if (!emailSent) {
       console.error(`Failed to send verification email to ${payload.email}`)
@@ -446,8 +456,14 @@ class UserService {
       }
     )
 
-    // Gửi mã mới qua email
-    const emailSent = await sendVerificationCode(user.email, verificationCode)
+    // Tạo accessToken tạm thời cho email verification
+    const tempAccessToken = await this.signAccessToken({
+      user_id: user_id,
+      verify: UserVerifyStatus.Unverified
+    })
+
+    // Gửi mã mới qua email với clientUrl và accessToken
+    const emailSent = await sendVerificationCode(user.email, verificationCode, envConfig.client_url, tempAccessToken)
 
     if (!emailSent) {
       console.error(`Failed to resend verification email to ${user.email}`)
@@ -468,7 +484,7 @@ class UserService {
   async forgotPassword({ user_id, verify }: { user_id: string; verify: UserVerifyStatus }) {
     const forgot_password_token = await this.forgotPasswordToken({ user_id, verify: verify })
     const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
-    
+
     if (!user) {
       throw new ErrorWithStatus({
         message: USERS_MESSAGES.USER_NOT_FOUND,
@@ -490,7 +506,7 @@ class UserService {
 
     // Gửi email với link reset password
     const emailSent = await sendPasswordResetLink(user.email, forgot_password_token)
-    
+
     if (!emailSent) {
       console.error(`Failed to send password reset email to ${user.email}`)
       throw new ErrorWithStatus({
