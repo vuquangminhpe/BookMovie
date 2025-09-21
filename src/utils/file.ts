@@ -75,8 +75,9 @@ export const handleUploadImage = async (req: Request) => {
     uploadDir: UPLOAD_TEMP_DIR,
     maxFiles: 10,
     keepExtensions: true,
-    maxFileSize: 300 * 1024, // 300KB - giảm để phù hợp Render
-    maxTotalFileSize: 1200 * 1024, // 1.2MB total
+    maxFileSize: 10 * 1024 * 1024, // 10 MB cho mỗi file
+    maxTotalFileSize: 10 * 1024 * 1024, // 10 MB tổng cộng
+
     filter: function ({ name, originalFilename, mimetype }: Part) {
       const valid = name === 'image' && Boolean(mimetype?.includes('image/'))
       if (!valid) {

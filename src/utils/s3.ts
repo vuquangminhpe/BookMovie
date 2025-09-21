@@ -49,8 +49,8 @@ export const uploadFileS3 = async ({
     // (optional) concurrency configuration
     queueSize: 4,
 
-    // (optional) size of each part, in bytes, at least 5MB
-    partSize: 1024 * 1024 * 5,
+    // (optional) size of each part, in bytes, at least 10MB
+    partSize: 1024 * 1024 * 10,
 
     // (optional) when true, do not automatically call AbortMultipartUpload when
     // a multipart upload fails to complete. You should then manually handle
