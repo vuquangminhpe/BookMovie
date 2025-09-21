@@ -10,7 +10,8 @@ interface BannerHomeType {
   time_active?: Date
   auto_active?: boolean
   description: string
-  create_date?: Date
+  created_at?: Date
+  updated_at?: Date
 }
 export default class BannerHome {
   _id?: ObjectId
@@ -22,7 +23,8 @@ export default class BannerHome {
   auto_active?: boolean
   topic?: string
   description: string
-  create_date?: Date
+  created_at?: Date
+  updated_at?: Date
 
   constructor({
     _id,
@@ -31,7 +33,8 @@ export default class BannerHome {
     title,
     topic,
     time_active,
-    create_date,
+    created_at,
+    updated_at,
     active,
     auto_active,
     description
@@ -46,6 +49,7 @@ export default class BannerHome {
     this.time_active = time_active
     this.active = active
     this.auto_active = auto_active
-    this.create_date = create_date
+    this.updated_at = date
+    this.created_at = date
   }
 }
