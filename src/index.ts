@@ -27,11 +27,13 @@ import feedbacksRouter from './routes/feedback.routes'
 import partnerRouter from './routes/partner.routes'
 import staffRouter from './routes/staff.routes'
 import showtimeCleanupService from './services/showtime-cleanup.services'
+import bannerSliderHomeSchedulerService from './services/banner-slider-home-scheduler.services'
 import { setupSocketHandlers } from './utils/socket-handlers'
 import paymentsRouter from './routes/payment.routes'
 import { execFileAsync } from './utils/video'
 import bookingsRouter from './routes/booking.routes'
 import ratingsRouter from './routes/ratings.routes'
+import bannerSliderHomeRouter from './routes/banner-slider-home.routes'
 
 config()
 
@@ -94,6 +96,9 @@ notificationService.setSocketIO(io)
 
 // Setup showtime cleanup service với socket.io
 showtimeCleanupService.setSocketIO(io)
+
+// Setup banner slider home scheduler service với socket.io
+bannerSliderHomeSchedulerService.setSocketIO(io)
 
 // Setup payment expiration service với socket.io
 paymentExpirationService.setSocketIO(io)
@@ -251,6 +256,44 @@ app.post('/admin/cleanup/showtimes/fix', async (req, res) => {
   }
 })
 
+// Admin endpoint cho manual banner slider home activation
+app.post('/admin/banner-slider-home/activate', async (req, res) => {
+  try {
+    // TODO: Add admin authentication middleware
+    const result = await bannerSliderHomeSchedulerService.triggerManualActivation()
+
+    res.json({
+      success: true,
+      message: 'Manual banner slider home activation completed',
+      result
+    })
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Banner slider home activation failed',
+      error: error.message
+    })
+  }
+})
+
+// Admin endpoint cho banner slider home scheduler status
+app.get('/admin/banner-slider-home/status', async (req, res) => {
+  try {
+    // TODO: Add admin authentication middleware
+    const status = bannerSliderHomeSchedulerService.getSchedulerStatus()
+
+    res.json({
+      success: true,
+      data: status
+    })
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
 // Routes (giữ nguyên thứ tự cũ)
 app.use('/users', usersRouter)
 app.use('/medias', mediasRouter)
@@ -268,6 +311,7 @@ app.use('/partners', partnerRouter)
 app.use('/payments', paymentsRouter)
 app.use('/bookings', bookingsRouter)
 app.use('/ratings', ratingsRouter)
+app.use('/banner-slider-home', bannerSliderHomeRouter)
 // Error handling
 app.use(defaultErrorHandler)
 app.get('/health/ffmpeg', async (req, res) => {
@@ -290,6 +334,7 @@ const gracefulShutdown = (signal: string) => {
     shutdownCleanupJobs()
     bookingExpirationService.clearAllJobs()
     paymentExpirationService.clearAllJobs()
+    bannerSliderHomeSchedulerService.stopScheduler()
     console.log('All cleanup jobs cleared')
 
     // Close database connection

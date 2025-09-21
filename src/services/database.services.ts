@@ -19,6 +19,7 @@ import Favorite from '~/models/schemas/Favorite.schema'
 import SeatLock from '~/models/schemas/SeatLock.schema'
 import Partner from '~/models/schemas/Partner.schema'
 import Contract from '~/models/schemas/Contact.schema'
+import BannerHome from '~/models/schemas/Banner_Slider_Home'
 
 const uri = envConfig.mongodb_url
 const dbName = envConfig.db_name
@@ -120,6 +121,9 @@ class DatabaseService {
   }
   get contracts(): Collection<Contract> {
     return this.db.collection('contracts')
+  }
+  get banners_slider_home(): Collection<BannerHome> {
+    return this.db.collection('banners_slider_home')
   }
 }
 
