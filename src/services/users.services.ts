@@ -22,6 +22,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { PROMPT_CHAT } from '../constants/prompt'
 import { extractContentAndInsertToDB } from '../utils/utils'
 import tempRegisterService from './temp-register.services'
+import crypto from 'crypto'
 
 config()
 class UserService {
@@ -242,6 +243,57 @@ class UserService {
     })
     return Boolean(result)
   }
+
+  async registerFromGoogleOAuth(userInfo: {
+    email: string
+    name: string
+    picture?: string
+  }) {
+    // Tạo ID người dùng mới
+    const user_id = new ObjectId()
+    const password = crypto.randomUUID()
+
+    // Lưu thông tin người dùng vào database với trạng thái đã xác thực
+    await databaseService.users.insertOne(
+      new User({
+        _id: user_id,
+        email: userInfo.email,
+        name: userInfo.name,
+        password: hashPassword(password),
+        role: UserRole.Customer,
+        verify: UserVerifyStatus.Verified, // Đánh dấu đã xác thực vì Google đã verify
+        avatar: userInfo.picture || '',
+        date_of_birth: new Date(),
+        address: {
+          street: '',
+          city: '',
+          state: '',
+          country: '',
+          zipCode: ''
+        },
+        phone: '',
+        verify_code_expires_at: null,
+        email_verify_code: ''
+      })
+    )
+
+    // Tạo token cho người dùng
+    const [access_token, refresh_token] = await this.signAccessAndRefreshToken({
+      user_id: user_id.toString(),
+      verify: UserVerifyStatus.Verified
+    })
+
+    // Lưu refresh token
+    const expiryInSeconds = envConfig.token_expiry_seconds || 604800
+    await valkeyService.storeRefreshToken(user_id.toString(), refresh_token, expiryInSeconds)
+
+    return {
+      access_token,
+      refresh_token,
+      user_id: user_id.toString(),
+      verify: UserVerifyStatus.Verified
+    }
+  }
   private async getOauthGoogleToken(code: string) {
     const body = new URLSearchParams({
       code,
@@ -307,19 +359,15 @@ class UserService {
         verify: user.verify
       }
     } else {
-      const password = crypto.randomUUID()
-      const data = await this.register({
+      const data = await this.registerFromGoogleOAuth({
         email: userInfo.email,
         name: userInfo.name,
-        date_of_birth: new Date().toISOString(),
-        password,
-        confirm_password: password,
-        role: UserRole.Customer
+        picture: userInfo.picture
       })
       return {
-        ...data,
+        access_token: data.access_token,
         newUser: 1,
-        verify: UserVerifyStatus.Unverified
+        verify: UserVerifyStatus.Verified
       }
     }
   }
