@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb'
 interface BannerHomeType {
   _id?: ObjectId
   image: string
-  author: string
+  author?: string
   title: string
   topic?: string
   active: boolean
@@ -16,7 +16,7 @@ interface BannerHomeType {
 export default class BannerHome {
   _id?: ObjectId
   image: string
-  author: string
+  author?: string
   title: string
   active: boolean
   time_active?: Date

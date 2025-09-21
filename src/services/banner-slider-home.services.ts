@@ -26,7 +26,7 @@ class BannerSliderHomeService {
       new BannerHome({
         _id: banner_id,
         image: payload.image,
-        author: payload.author,
+        author: payload.author || '',
         title: payload.title,
         topic: payload.topic,
         description: payload.description,
@@ -79,7 +79,12 @@ class BannerSliderHomeService {
     const totalBanners = await databaseService.banners_slider_home.countDocuments(filter)
 
     // Get banners with pagination
-    const banners = await databaseService.banners_slider_home.find(filter).sort(sortObj).skip(skip).limit(limitNum).toArray()
+    const banners = await databaseService.banners_slider_home
+      .find(filter)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limitNum)
+      .toArray()
 
     return {
       banners,
@@ -214,7 +219,7 @@ class BannerSliderHomeService {
       // Update banners to active
       await databaseService.banners_slider_home.updateMany(
         {
-          _id: { $in: bannersToActivate.map(banner => banner._id) }
+          _id: { $in: bannersToActivate.map((banner) => banner._id) }
         },
         {
           $set: { active: true }
@@ -223,7 +228,7 @@ class BannerSliderHomeService {
 
       return {
         activated_count: bannersToActivate.length,
-        activated_banners: bannersToActivate.map(banner => ({
+        activated_banners: bannersToActivate.map((banner) => ({
           _id: banner._id,
           title: banner.title,
           time_active: banner.time_active

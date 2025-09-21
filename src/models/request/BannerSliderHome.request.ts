@@ -1,6 +1,6 @@
 export interface CreateBannerSliderHomeReqBody {
   image: string
-  author: string
+  author?: string
   title: string
   topic?: string
   description: string

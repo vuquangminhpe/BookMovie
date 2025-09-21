@@ -18,9 +18,7 @@ export const createBannerSliderHomeValidator = validate(
         trim: true
       },
       author: {
-        notEmpty: {
-          errorMessage: 'Author is required'
-        },
+        optional: true,
         isString: {
           errorMessage: 'Author must be a string'
         },
