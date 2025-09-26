@@ -60,6 +60,9 @@ import {
   staffDeleteMyShowtimeController
 } from '../controllers/staff/controllers/showtime.controllers'
 
+// Import staff booking controllers
+import { staffGetMyTheaterBookingsController } from '../controllers/staff/controllers/booking.controllers'
+
 import { getBookingByIdController } from '../controllers/bookings.controllers'
 import databaseService from '~/services/database.services'
 import { ObjectId } from 'bson'
@@ -404,209 +407,13 @@ staffRouter.delete('/showtimes/:showtime_id', wrapAsync(staffDeleteMyShowtimeCon
  */
 
 /**
- * Description: Get bookings for my theater
+ * Description: Get bookings for my theater with filters
  * Path: /staff/bookings
  * Method: GET
  * Header: { Authorization: Bearer <access_token> }
+ * Query: GetBookingsReqQuery (page, limit, status, payment_status, date_from, date_to, sort_by, sort_order)
  */
-staffRouter.get(
-  '/bookings',
-  wrapAsync(
-    async (
-      req: { decode_authorization: any; query: { limit: string; page: string } },
-      res: {
-        status: (arg0: number) => {
-          (): any
-          new (): any
-          json: { (arg0: { message: string; result: { bookings: never[]; total: number } }): any; new (): any }
-        }
-        json: (arg0: { message: string; result: { bookings: any; total: any; page: number; limit: number } }) => void
-      }
-    ) => {
-      const { user_id } = req.decode_authorization as any
-
-      // Find theater managed by this staff
-      const theater = await databaseService.theaters.findOne({
-        manager_id: new ObjectId(user_id as string)
-      })
-
-      if (!theater) {
-        return res.status(404).json({
-          message: 'No theater found',
-          result: { bookings: [], total: 0 }
-        })
-      }
-
-      // Get bookings for this theater with populated data
-      const limit = parseInt(req.query.limit as string) || 20
-      const page = parseInt(req.query.page as string) || 1
-      const skip = (page - 1) * limit
-
-      const bookings = await databaseService.bookings
-        .aggregate([
-          { $match: { theater_id: theater._id } },
-          { $sort: { booking_time: -1 } },
-          { $skip: skip },
-          { $limit: limit },
-          {
-            $lookup: {
-              from: 'users',
-              localField: 'user_id',
-              foreignField: '_id',
-              as: 'user_info'
-            }
-          },
-          {
-            $lookup: {
-              from: 'movies',
-              localField: 'movie_id',
-              foreignField: '_id',
-              as: 'movie_info'
-            }
-          },
-          {
-            $lookup: {
-              from: 'showtimes',
-              localField: 'showtime_id',
-              foreignField: '_id',
-              as: 'showtime_info'
-            }
-          },
-          {
-            $lookup: {
-              from: 'screens',
-              localField: 'screen_id',
-              foreignField: '_id',
-              as: 'screen_info'
-            }
-          },
-          {
-            $lookup: {
-              from: 'theaters',
-              localField: 'theater_id',
-              foreignField: '_id',
-              as: 'theater_info'
-            }
-          },
-          {
-            $project: {
-              _id: 1,
-              user_id: 1,
-              showtime_id: 1,
-              movie_id: 1,
-              theater_id: 1,
-              screen_id: 1,
-              seats: 1,
-              total_amount: 1,
-              booking_time: 1,
-              ticket_code: 1,
-              status: 1,
-              payment_status: 1,
-              created_at: 1,
-              updated_at: 1,
-              user_info: {
-                $arrayElemAt: [
-                  {
-                    $map: {
-                      input: '$user_info',
-                      as: 'user',
-                      in: {
-                        _id: '$$user._id',
-                        name: '$$user.name',
-                        email: '$$user.email'
-                      }
-                    }
-                  },
-                  0
-                ]
-              },
-              movie_info: {
-                $arrayElemAt: [
-                  {
-                    $map: {
-                      input: '$movie_info',
-                      as: 'movie',
-                      in: {
-                        _id: '$$movie._id',
-                        title: '$$movie.title',
-                        poster: '$$movie.poster',
-                        duration: '$$movie.duration'
-                      }
-                    }
-                  },
-                  0
-                ]
-              },
-              showtime_info: {
-                $arrayElemAt: [
-                  {
-                    $map: {
-                      input: '$showtime_info',
-                      as: 'showtime',
-                      in: {
-                        _id: '$$showtime._id',
-                        start_time: '$$showtime.start_time',
-                        end_time: '$$showtime.end_time',
-                        date: '$$showtime.date'
-                      }
-                    }
-                  },
-                  0
-                ]
-              },
-              screen_info: {
-                $arrayElemAt: [
-                  {
-                    $map: {
-                      input: '$screen_info',
-                      as: 'screen',
-                      in: {
-                        _id: '$$screen._id',
-                        name: '$$screen.name',
-                        type: '$$screen.type'
-                      }
-                    }
-                  },
-                  0
-                ]
-              },
-              theater_info: {
-                $arrayElemAt: [
-                  {
-                    $map: {
-                      input: '$theater_info',
-                      as: 'theaters',
-                      in: {
-                        _id: '$$theaters._id',
-                        name: '$$theaters.name',
-                        location: '$$theaters.location'
-                      }
-                    }
-                  },
-                  0
-                ]
-              }
-            }
-          }
-        ])
-        .toArray()
-
-      const total = await databaseService.bookings.countDocuments({
-        theater_id: theater._id
-      })
-
-      res.json({
-        message: 'Get theater bookings success',
-        result: {
-          bookings,
-          total,
-          page,
-          limit
-        }
-      })
-    }
-  )
-)
+staffRouter.get('/bookings', wrapAsync(staffGetMyTheaterBookingsController))
 
 /**
  * Description: Get booking details

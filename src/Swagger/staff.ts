@@ -1479,9 +1479,9 @@
  *
  * /staff/bookings:
  *   get:
- *     summary: Get bookings for my theater
- *     description: Staff only - Get all bookings for staff's theater
- *     tags: [Staff]
+ *     summary: Get bookings for my theater with filters
+ *     description: Staff only - Get all bookings for staff's theater with optional filters by status, payment status, and date range
+ *     tags: [Staff - Booking Management]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1497,6 +1497,43 @@
  *           type: integer
  *           default: 20
  *         description: Number of items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, confirmed, cancelled, completed, used]
+ *         description: Filter by booking status
+ *       - in: query
+ *         name: payment_status
+ *         schema:
+ *           type: string
+ *           enum: [pending, completed, failed, refunded, cancelled]
+ *         description: Filter by payment status
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           default: booking_time
+ *         description: Field to sort by (booking_time, total_amount, status, payment_status)
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *       - in: query
+ *         name: date_from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter bookings from this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: date_to
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter bookings until this date (YYYY-MM-DD)
  *     responses:
  *       200:
  *         description: Theater bookings retrieved successfully
