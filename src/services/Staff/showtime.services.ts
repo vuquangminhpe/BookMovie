@@ -124,8 +124,8 @@ class StaffShowtimeService {
       screen_id,
       date,
       status,
-      sort_by = 'start_time',
-      sort_order = 'asc'
+      sort_by = 'created_at',
+      sort_order = 'desc'
     } = query
 
     // Get theater managed by this staff
