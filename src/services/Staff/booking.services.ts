@@ -36,15 +36,22 @@ class StaffBookingService {
       theater_id: theater._id
     }
 
+    // Debug logging
+    console.log('🔍 Staff Booking Query Params:', { status, payment_status, date_from, date_to })
+
     // Filter by booking status
     if (status && Object.values(BookingStatus).includes(status as BookingStatus)) {
       matchFilter.status = status
+      console.log('✅ Added status filter:', status)
     }
 
     // Filter by payment status
     if (payment_status && Object.values(PaymentStatus).includes(payment_status as PaymentStatus)) {
       matchFilter.payment_status = payment_status
+      console.log('✅ Added payment_status filter:', payment_status)
     }
+
+    console.log('🎯 Final MongoDB Filter:', matchFilter)
 
     // Filter by date range
     if (date_from || date_to) {
