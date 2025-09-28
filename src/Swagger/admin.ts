@@ -2298,4 +2298,250 @@
  *         description: Booking not found, payment not found, or user not found
  *       500:
  *         description: Failed to send email
+ *
+ * /admin/theaters:
+ *   get:
+ *     summary: Get all theaters (Admin view-only)
+ *     description: Admin only - Get list of all theaters with filters, manager info, and statistics
+ *     tags: [Admin - Theater Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by theater name, location, city, or address
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filter by city
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, inactive, maintenance]
+ *         description: Filter by theater status
+ *       - in: query
+ *         name: has_manager
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: Filter theaters with/without manager
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           default: created_at
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *     responses:
+ *       200:
+ *         description: Theaters retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get all theaters success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     theaters:
+ *                       type: array
+ *                       items:
+ *                         allOf:
+ *                           - $ref: '#/components/schemas/Theater'
+ *                           - type: object
+ *                             properties:
+ *                               manager_info:
+ *                                 type: object
+ *                                 nullable: true
+ *                                 properties:
+ *                                   _id:
+ *                                     type: string
+ *                                   name:
+ *                                     type: string
+ *                                   email:
+ *                                     type: string
+ *                                   phone:
+ *                                     type: string
+ *                               total_screens:
+ *                                 type: integer
+ *                               total_bookings:
+ *                                 type: integer
+ *                               completed_bookings:
+ *                                 type: integer
+ *                               total_revenue:
+ *                                 type: number
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *
+ * /admin/theaters/stats:
+ *   get:
+ *     summary: Get theater overview statistics (Admin only)
+ *     description: Admin only - Get comprehensive statistics for all theaters
+ *     tags: [Admin - Theater Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Theater overview statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get theater overview stats success
+ *                 result:
+ *                   type: object
+ *                   properties:
+ *                     total_theaters:
+ *                       type: integer
+ *                       description: Total number of theaters
+ *                     active_theaters:
+ *                       type: integer
+ *                       description: Number of active theaters
+ *                     theaters_with_manager:
+ *                       type: integer
+ *                       description: Number of theaters with assigned manager
+ *                     theaters_without_manager:
+ *                       type: integer
+ *                       description: Number of theaters without manager
+ *                     total_screens:
+ *                       type: integer
+ *                       description: Total screens across all theaters
+ *                     total_bookings:
+ *                       type: integer
+ *                       description: Total bookings across all theaters
+ *                     total_revenue:
+ *                       type: number
+ *                       description: Total revenue from all theaters
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *
+ * /admin/theaters/{theater_id}:
+ *   get:
+ *     summary: Get theater details (Admin view-only)
+ *     description: Admin only - Get detailed information about a specific theater including manager, screens, and statistics
+ *     tags: [Admin - Theater Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: theater_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Theater ID
+ *     responses:
+ *       200:
+ *         description: Theater details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Get theater details success
+ *                 result:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/Theater'
+ *                     - type: object
+ *                       properties:
+ *                         manager_info:
+ *                           type: object
+ *                           nullable: true
+ *                           properties:
+ *                             _id:
+ *                               type: string
+ *                             name:
+ *                               type: string
+ *                             email:
+ *                               type: string
+ *                             phone:
+ *                               type: string
+ *                             created_at:
+ *                               type: string
+ *                               format: date-time
+ *                         screens:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               name:
+ *                                 type: string
+ *                               screen_type:
+ *                                 type: string
+ *                               capacity:
+ *                                 type: integer
+ *                               status:
+ *                                 type: string
+ *                         statistics:
+ *                           type: object
+ *                           properties:
+ *                             total_screens:
+ *                               type: integer
+ *                             total_showtimes:
+ *                               type: integer
+ *                             active_showtimes:
+ *                               type: integer
+ *                             total_bookings:
+ *                               type: integer
+ *                             completed_bookings:
+ *                               type: integer
+ *                             pending_bookings:
+ *                               type: integer
+ *                             cancelled_bookings:
+ *                               type: integer
+ *                             total_revenue:
+ *                               type: number
+ *                             total_capacity:
+ *                               type: integer
+ *       400:
+ *         description: Invalid theater ID
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: Not authorized as admin
+ *       404:
+ *         description: Theater not found
  */

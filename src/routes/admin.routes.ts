@@ -32,7 +32,10 @@ import {
   adminCreateConciergeController,
   getAllConciergeController,
   updateConciergeController,
-  deleteConciergeController
+  deleteConciergeController,
+  adminGetAllTheatersController,
+  adminGetTheaterByIdController,
+  adminGetTheaterOverviewStatsController
 } from '../controllers/admin.controllers'
 
 // Contract controllers
@@ -286,5 +289,36 @@ adminRouter.post('/bookings/:booking_id/send-success-email', wrapAsync(sendPayme
  * Body: { failure_reason?: string }
  */
 adminRouter.post('/bookings/:booking_id/send-failed-email', wrapAsync(sendPaymentFailedEmailController))
+
+/**
+ * =============================================================================
+ * THEATER MANAGEMENT (View-only)
+ * =============================================================================
+ */
+
+/**
+ * Description: Get all theaters with filters (Admin view-only)
+ * Path: /admin/theaters
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ * Query: GetAdminTheatersReqQuery (page, limit, search, city, status, has_manager, sort_by, sort_order)
+ */
+adminRouter.get('/theaters', wrapAsync(adminGetAllTheatersController))
+
+/**
+ * Description: Get theater overview statistics (Admin only)
+ * Path: /admin/theaters/stats
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+adminRouter.get('/theaters/stats', wrapAsync(adminGetTheaterOverviewStatsController))
+
+/**
+ * Description: Get theater details by ID (Admin view-only)
+ * Path: /admin/theaters/:theater_id
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+adminRouter.get('/theaters/:theater_id', wrapAsync(adminGetTheaterByIdController))
 
 export default adminRouter

@@ -60,3 +60,19 @@ export interface UpdateUserReqBody {
   role?: UserRole
   verify?: UserVerifyStatus
 }
+
+// Theater management (Admin view-only)
+export interface GetAdminTheatersReqQuery {
+  page?: string
+  limit?: string
+  search?: string
+  city?: string
+  status?: string
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
+  has_manager?: 'true' | 'false' // Filter theaters with/without manager
+}
+
+export interface TheaterIdReqParams extends ParamsDictionary {
+  theater_id: string
+}

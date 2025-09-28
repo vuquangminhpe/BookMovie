@@ -5,7 +5,8 @@ import {
   UpdateUserRoleReqBody,
   GetDashboardStatsReqQuery,
   FeatureMovieReqBody,
-  UpdateUserReqBody
+  UpdateUserReqBody,
+  GetAdminTheatersReqQuery
 } from '../models/request/Admin.request'
 import { ErrorWithStatus } from '../models/Errors'
 import HTTP_STATUS from '../constants/httpStatus'
@@ -1038,6 +1039,430 @@ class AdminService {
     }
 
     return { concierge_id }
+  }
+
+  // =============================================================================
+  // THEATER MANAGEMENT (Admin view-only)
+  // =============================================================================
+
+  // Admin xem tất cả theaters với filters
+  async getAllTheaters(query: GetAdminTheatersReqQuery) {
+    const {
+      page = '1',
+      limit = '20',
+      search = '',
+      city,
+      status,
+      has_manager,
+      sort_by = 'created_at',
+      sort_order = 'desc'
+    } = query
+
+    const filter: any = {}
+
+    // Search by name, location, city, address
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } },
+        { city: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } }
+      ]
+    }
+
+    // Filter by city
+    if (city) {
+      filter.city = { $regex: city, $options: 'i' }
+    }
+
+    // Filter by status
+    if (status) {
+      filter.status = status
+    }
+
+    // Filter by manager presence
+    if (has_manager === 'true') {
+      filter.manager_id = { $exists: true, $ne: null }
+    } else if (has_manager === 'false') {
+      filter.$or = [{ manager_id: { $exists: false } }, { manager_id: null }]
+    }
+
+    const pageNum = parseInt(page)
+    const limitNum = parseInt(limit)
+    const skip = (pageNum - 1) * limitNum
+
+    const sortObj: any = {}
+    sortObj[sort_by] = sort_order === 'asc' ? 1 : -1
+
+    const totalTheaters = await databaseService.theaters.countDocuments(filter)
+
+    // Get theaters with manager info, screen count, and booking stats
+    const theaters = await databaseService.theaters
+      .aggregate([
+        { $match: filter },
+        // Lookup manager info
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'manager_id',
+            foreignField: '_id',
+            as: 'manager_info'
+          }
+        },
+        // Count screens
+        {
+          $lookup: {
+            from: 'screens',
+            localField: '_id',
+            foreignField: 'theater_id',
+            as: 'screens'
+          }
+        },
+        // Count total bookings
+        {
+          $lookup: {
+            from: 'bookings',
+            localField: '_id',
+            foreignField: 'theater_id',
+            as: 'all_bookings'
+          }
+        },
+        // Add computed fields
+        {
+          $addFields: {
+            manager_info: {
+              $cond: {
+                if: { $gt: [{ $size: '$manager_info' }, 0] },
+                then: {
+                  $let: {
+                    vars: { manager: { $arrayElemAt: ['$manager_info', 0] } },
+                    in: {
+                      _id: '$$manager._id',
+                      name: '$$manager.name',
+                      email: '$$manager.email',
+                      phone: '$$manager.phone'
+                    }
+                  }
+                },
+                else: null
+              }
+            },
+            total_screens: { $size: '$screens' },
+            total_bookings: { $size: '$all_bookings' },
+            completed_bookings: {
+              $size: {
+                $filter: {
+                  input: '$all_bookings',
+                  cond: { $eq: ['$$this.status', 'completed'] }
+                }
+              }
+            },
+            total_revenue: {
+              $sum: {
+                $map: {
+                  input: {
+                    $filter: {
+                      input: '$all_bookings',
+                      cond: {
+                        $and: [
+                          { $eq: ['$$this.status', 'completed'] },
+                          { $eq: ['$$this.payment_status', 'completed'] }
+                        ]
+                      }
+                    }
+                  },
+                  in: '$$this.total_amount'
+                }
+              }
+            }
+          }
+        },
+        // Project final structure
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            location: 1,
+            city: 1,
+            address: 1,
+            phone: 1,
+            email: 1,
+            status: 1,
+            created_at: 1,
+            updated_at: 1,
+            manager_info: 1,
+            total_screens: 1,
+            total_bookings: 1,
+            completed_bookings: 1,
+            total_revenue: 1
+          }
+        },
+        { $sort: sortObj },
+        { $skip: skip },
+        { $limit: limitNum }
+      ])
+      .toArray()
+
+    return {
+      theaters,
+      total: totalTheaters,
+      page: pageNum,
+      limit: limitNum,
+      total_pages: Math.ceil(totalTheaters / limitNum)
+    }
+  }
+
+  // Admin xem chi tiết theater với thống kê đầy đủ
+  async getTheaterById(theater_id: string) {
+    if (!ObjectId.isValid(theater_id)) {
+      throw new ErrorWithStatus({
+        message: 'Invalid theater ID',
+        status: HTTP_STATUS.BAD_REQUEST
+      })
+    }
+
+    const theaterDetails = await databaseService.theaters
+      .aggregate([
+        { $match: { _id: new ObjectId(theater_id) } },
+        // Lookup manager info
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'manager_id',
+            foreignField: '_id',
+            as: 'manager_info'
+          }
+        },
+        // Lookup screens with details
+        {
+          $lookup: {
+            from: 'screens',
+            localField: '_id',
+            foreignField: 'theater_id',
+            as: 'screens'
+          }
+        },
+        // Lookup movies through showtimes
+        {
+          $lookup: {
+            from: 'showtimes',
+            localField: '_id',
+            foreignField: 'theater_id',
+            as: 'showtimes'
+          }
+        },
+        // Lookup bookings
+        {
+          $lookup: {
+            from: 'bookings',
+            localField: '_id',
+            foreignField: 'theater_id',
+            as: 'bookings'
+          }
+        },
+        // Add computed fields
+        {
+          $addFields: {
+            manager_info: {
+              $cond: {
+                if: { $gt: [{ $size: '$manager_info' }, 0] },
+                then: {
+                  $let: {
+                    vars: { manager: { $arrayElemAt: ['$manager_info', 0] } },
+                    in: {
+                      _id: '$$manager._id',
+                      name: '$$manager.name',
+                      email: '$$manager.email',
+                      phone: '$$manager.phone',
+                      created_at: '$$manager.created_at'
+                    }
+                  }
+                },
+                else: null
+              }
+            },
+            screens: {
+              $map: {
+                input: '$screens',
+                in: {
+                  _id: '$$this._id',
+                  name: '$$this.name',
+                  screen_type: '$$this.screen_type',
+                  capacity: '$$this.capacity',
+                  status: '$$this.status'
+                }
+              }
+            },
+            statistics: {
+              total_screens: { $size: '$screens' },
+              total_showtimes: { $size: '$showtimes' },
+              active_showtimes: {
+                $size: {
+                  $filter: {
+                    input: '$showtimes',
+                    cond: { $eq: ['$$this.status', 'scheduled'] }
+                  }
+                }
+              },
+              total_bookings: { $size: '$bookings' },
+              completed_bookings: {
+                $size: {
+                  $filter: {
+                    input: '$bookings',
+                    cond: { $eq: ['$$this.status', 'completed'] }
+                  }
+                }
+              },
+              pending_bookings: {
+                $size: {
+                  $filter: {
+                    input: '$bookings',
+                    cond: { $eq: ['$$this.status', 'pending'] }
+                  }
+                }
+              },
+              cancelled_bookings: {
+                $size: {
+                  $filter: {
+                    input: '$bookings',
+                    cond: { $eq: ['$$this.status', 'cancelled'] }
+                  }
+                }
+              },
+              total_revenue: {
+                $sum: {
+                  $map: {
+                    input: {
+                      $filter: {
+                        input: '$bookings',
+                        cond: {
+                          $and: [
+                            { $eq: ['$$this.status', 'completed'] },
+                            { $eq: ['$$this.payment_status', 'completed'] }
+                          ]
+                        }
+                      }
+                    },
+                    in: '$$this.total_amount'
+                  }
+                }
+              },
+              total_capacity: { $sum: '$screens.capacity' }
+            }
+          }
+        },
+        // Project final structure  
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            location: 1,
+            city: 1,
+            address: 1,
+            phone: 1,
+            email: 1,
+            status: 1,
+            created_at: 1,
+            updated_at: 1,
+            manager_info: 1,
+            screens: 1,
+            statistics: 1
+          }
+        }
+      ])
+      .toArray()
+
+    if (theaterDetails.length === 0) {
+      throw new ErrorWithStatus({
+        message: 'Theater not found',
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    return theaterDetails[0]
+  }
+
+  // Admin xem thống kê tổng quan tất cả theaters
+  async getTheaterOverviewStats() {
+    const stats = await databaseService.theaters
+      .aggregate([
+        // Lookup manager info
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'manager_id',
+            foreignField: '_id',
+            as: 'manager_info'
+          }
+        },
+        // Lookup screens
+        {
+          $lookup: {
+            from: 'screens',
+            localField: '_id',
+            foreignField: 'theater_id',
+            as: 'screens'
+          }
+        },
+        // Lookup bookings
+        {
+          $lookup: {
+            from: 'bookings',
+            localField: '_id',
+            foreignField: 'theater_id',
+            as: 'bookings'
+          }
+        },
+        // Group to calculate stats
+        {
+          $group: {
+            _id: null,
+            total_theaters: { $sum: 1 },
+            active_theaters: {
+              $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
+            },
+            theaters_with_manager: {
+              $sum: { $cond: [{ $gt: [{ $size: '$manager_info' }, 0] }, 1, 0] }
+            },
+            theaters_without_manager: {
+              $sum: { $cond: [{ $eq: [{ $size: '$manager_info' }, 0] }, 1, 0] }
+            },
+            total_screens: { $sum: { $size: '$screens' } },
+            total_bookings: { $sum: { $size: '$bookings' } },
+            total_revenue: {
+              $sum: {
+                $sum: {
+                  $map: {
+                    input: {
+                      $filter: {
+                        input: '$bookings',
+                        cond: {
+                          $and: [
+                            { $eq: ['$$this.status', 'completed'] },
+                            { $eq: ['$$this.payment_status', 'completed'] }
+                          ]
+                        }
+                      }
+                    },
+                    in: '$$this.total_amount'
+                  }
+                }
+              }
+            }
+          }
+        }
+      ])
+      .toArray()
+
+    return stats[0] || {
+      total_theaters: 0,
+      active_theaters: 0,
+      theaters_with_manager: 0,
+      theaters_without_manager: 0,
+      total_screens: 0,
+      total_bookings: 0,
+      total_revenue: 0
+    }
   }
 }
 

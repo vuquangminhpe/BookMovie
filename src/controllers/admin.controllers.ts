@@ -9,7 +9,9 @@ import {
   FeatureMovieReqBody,
   ModerateFeedbackReqBody,
   ModerateRatingReqBody,
-  UpdateUserReqBody
+  UpdateUserReqBody,
+  GetAdminTheatersReqQuery,
+  TheaterIdReqParams
 } from '../models/request/Admin.request'
 import adminService from '../services/admin.services'
 import { TokenPayload } from '../models/request/User.request'
@@ -742,6 +744,38 @@ export const deleteConciergeController = async (req: Request<UserIdReqParams>, r
   const result = await adminService.deleteConcierge(concierge_id)
   res.json({
     message: ADMIN_MESSAGES.DELETE_CONCIERGE_SUCCESS,
+    result
+  })
+}
+
+// =============================================================================
+// THEATER MANAGEMENT (Admin view-only)
+// =============================================================================
+
+export const adminGetAllTheatersController = async (
+  req: Request<ParamsDictionary, any, any, GetAdminTheatersReqQuery>,
+  res: Response
+) => {
+  const result = await adminService.getAllTheaters(req.query)
+  res.json({
+    message: 'Get all theaters success',
+    result
+  })
+}
+
+export const adminGetTheaterByIdController = async (req: Request<TheaterIdReqParams>, res: Response) => {
+  const { theater_id } = req.params
+  const result = await adminService.getTheaterById(theater_id)
+  res.json({
+    message: 'Get theater details success',
+    result
+  })
+}
+
+export const adminGetTheaterOverviewStatsController = async (req: Request, res: Response) => {
+  const result = await adminService.getTheaterOverviewStats()
+  res.json({
+    message: 'Get theater overview stats success',
     result
   })
 }
