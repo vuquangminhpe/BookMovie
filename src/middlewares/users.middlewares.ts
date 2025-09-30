@@ -197,7 +197,7 @@ export const registerValidator = validate(
       },
       password: passwordSchema,
       confirm_password: confirmPasswordSchema,
-      date_of_birth: DateOfBirthSchema,
+      date_of_birth: { ...DateOfBirthSchema, optional: true },
       'address.street': {
         optional: true,
         isString: true,
