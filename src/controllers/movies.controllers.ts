@@ -241,3 +241,11 @@ export const getAvailableLanguagesController = async (req: Request, res: Respons
     result
   })
 }
+
+export const getTopRevenueMoviesController = async (req: Request, res: Response) => {
+  const result = await movieService.getTopRevenueMovies(3)
+  res.json({
+    message: 'Top 3 phim có doanh thu cao nhất',
+    result
+  })
+}

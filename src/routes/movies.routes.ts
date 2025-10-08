@@ -21,7 +21,8 @@ import {
   searchMoviesController,
   getMovieStatsController,
   getAvailableGenresController,
-  getAvailableLanguagesController
+  getAvailableLanguagesController,
+  getTopRevenueMoviesController
 } from '../controllers/movies.controllers'
 import { AccessTokenValidator, verifiedUserValidator } from '../middlewares/users.middlewares'
 import { createMovieValidator, movieIdValidator, updateMovieValidator } from '../middlewares/movie.middlewares'
@@ -39,6 +40,7 @@ moviesRouter.get('/categories/featured', wrapAsync(getFeaturedMoviesController))
 moviesRouter.get('/categories/now-showing', wrapAsync(getNowShowingMoviesController))
 moviesRouter.get('/categories/coming-soon', wrapAsync(getComingSoonMoviesController))
 moviesRouter.get('/categories/top-rated', wrapAsync(getTopRatedMoviesController))
+moviesRouter.get('/categories/top-revenue', wrapAsync(getTopRevenueMoviesController))
 moviesRouter.get('/categories/trending', wrapAsync(getTrendingMoviesController))
 moviesRouter.get('/categories/popular', wrapAsync(getPopularMoviesController))
 moviesRouter.get('/categories/recently-added', wrapAsync(getRecentlyAddedMoviesController))

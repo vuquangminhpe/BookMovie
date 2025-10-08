@@ -683,6 +683,50 @@ class MovieService {
 
     return languages.map((l) => ({ code: l._id, count: l.count }))
   }
+
+  async getTopRevenueMovies(limit: number = 3) {
+    // Tính tổng doanh thu cho mỗi phim từ bảng bookings
+    const movies = await databaseService.movies
+      .aggregate([
+        {
+          $lookup: {
+            from: 'bookings',
+            localField: '_id',
+            foreignField: 'movie_id',
+            as: 'bookings'
+          }
+        },
+        {
+          $addFields: {
+            total_revenue: {
+              $sum: {
+                $map: {
+                  input: '$bookings',
+                  as: 'booking',
+                  in: {
+                    $cond: [
+                      { $eq: ['$$booking.status', 'confirmed'] },
+                      '$$booking.total_price',
+                      0
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        { $sort: { total_revenue: -1 } },
+        { $limit: limit },
+        {
+          $project: {
+            bookings: 0
+          }
+        }
+      ])
+      .toArray()
+
+    return movies
+  }
 }
 
 const movieService = new MovieService()
