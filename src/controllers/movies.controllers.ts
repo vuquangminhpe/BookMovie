@@ -243,9 +243,9 @@ export const getAvailableLanguagesController = async (req: Request, res: Respons
 }
 
 export const getTopRevenueMoviesController = async (req: Request, res: Response) => {
-  const result = await movieService.getTopRevenueMovies(3)
+  const result = await movieService.getTopRevenueMovies(10)
   res.json({
-    message: 'Top 3 phim có doanh thu cao nhất',
+    message: 'Top 10 phim có doanh thu cao nhất',
     result
   })
 }

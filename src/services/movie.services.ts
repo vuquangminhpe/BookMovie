@@ -684,7 +684,7 @@ class MovieService {
     return languages.map((l) => ({ code: l._id, count: l.count }))
   }
 
-  async getTopRevenueMovies(limit: number = 3) {
+  async getTopRevenueMovies(limit: number = 10) {
     // Tính tổng doanh thu cho mỗi phim từ bảng bookings
     const movies = await databaseService.movies
       .aggregate([
