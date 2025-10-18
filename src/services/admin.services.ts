@@ -1163,12 +1163,7 @@ class AdminService {
                   input: {
                     $filter: {
                       input: '$all_bookings',
-                      cond: {
-                        $and: [
-                          { $eq: ['$$this.status', 'completed'] },
-                          { $eq: ['$$this.payment_status', 'completed'] }
-                        ]
-                      }
+                      cond: { $eq: ['$$this.payment_status', 'completed'] }
                     }
                   },
                   in: '$$this.total_amount'
@@ -1335,12 +1330,7 @@ class AdminService {
                     input: {
                       $filter: {
                         input: '$bookings',
-                        cond: {
-                          $and: [
-                            { $eq: ['$$this.status', 'completed'] },
-                            { $eq: ['$$this.payment_status', 'completed'] }
-                          ]
-                        }
+                        cond: { $eq: ['$$this.payment_status', 'completed'] }
                       }
                     },
                     in: '$$this.total_amount'
@@ -1436,12 +1426,7 @@ class AdminService {
                     input: {
                       $filter: {
                         input: '$bookings',
-                        cond: {
-                          $and: [
-                            { $eq: ['$$this.status', 'completed'] },
-                            { $eq: ['$$this.payment_status', 'completed'] }
-                          ]
-                        }
+                        cond: { $eq: ['$$this.payment_status', 'completed'] }
                       }
                     },
                     in: '$$this.total_amount'
