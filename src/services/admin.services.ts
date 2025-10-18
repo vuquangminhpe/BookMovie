@@ -379,7 +379,10 @@ class AdminService {
     const revenueByStatus = await databaseService.bookings
       .aggregate([
         {
-          $match: dateFilter.$gte ? { created_at: dateFilter } : {}
+          $match: {
+            ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
+            status: { $ne: 'cancelled' }
+          }
         },
         {
           $group: {
@@ -394,7 +397,10 @@ class AdminService {
     const bookingsPerDay = await databaseService.bookings
       .aggregate([
         {
-          $match: dateFilter.$gte ? { created_at: dateFilter } : {}
+          $match: {
+            ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
+            status: { $ne: 'cancelled' }
+          }
         },
         {
           $group: {
@@ -424,7 +430,10 @@ class AdminService {
     const topMovies = await databaseService.bookings
       .aggregate([
         {
-          $match: dateFilter.$gte ? { created_at: dateFilter } : {}
+          $match: {
+            ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
+            status: { $ne: 'cancelled' }
+          }
         },
         {
           $group: {
@@ -466,7 +475,10 @@ class AdminService {
     const topTheaters = await databaseService.bookings
       .aggregate([
         {
-          $match: dateFilter.$gte ? { created_at: dateFilter } : {}
+          $match: {
+            ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
+            status: { $ne: 'cancelled' }
+          }
         },
         {
           $group: {
@@ -1147,8 +1159,14 @@ class AdminService {
                 else: null
               }
             },
-            total_screens: { $size: '$screens' },
-            total_bookings: { $size: '$all_bookings' },
+            total_bookings: {
+              $size: {
+                $filter: {
+                  input: '$all_bookings',
+                  cond: { $ne: ['$$this.status', 'cancelled'] }
+                }
+              }
+            },
             completed_bookings: {
               $size: {
                 $filter: {
@@ -1163,7 +1181,12 @@ class AdminService {
                   input: {
                     $filter: {
                       input: '$all_bookings',
-                      cond: { $eq: ['$$this.payment_status', 'completed'] }
+                      cond: {
+                        $and: [
+                          { $eq: ['$$this.payment_status', 'completed'] },
+                          { $ne: ['$$this.status', 'cancelled'] }
+                        ]
+                      }
                     }
                   },
                   in: '$$this.total_amount'
@@ -1299,7 +1322,14 @@ class AdminService {
                   }
                 }
               },
-              total_bookings: { $size: '$bookings' },
+              total_bookings: {
+                $size: {
+                  $filter: {
+                    input: '$bookings',
+                    cond: { $ne: ['$$this.status', 'cancelled'] }
+                  }
+                }
+              },
               completed_bookings: {
                 $size: {
                   $filter: {
@@ -1330,7 +1360,12 @@ class AdminService {
                     input: {
                       $filter: {
                         input: '$bookings',
-                        cond: { $eq: ['$$this.payment_status', 'completed'] }
+                        cond: {
+                          $and: [
+                            { $eq: ['$$this.payment_status', 'completed'] },
+                            { $ne: ['$$this.status', 'cancelled'] }
+                          ]
+                        }
                       }
                     },
                     in: '$$this.total_amount'
@@ -1417,8 +1452,16 @@ class AdminService {
             theaters_without_manager: {
               $sum: { $cond: [{ $eq: [{ $size: '$manager_info' }, 0] }, 1, 0] }
             },
-            total_screens: { $sum: { $size: '$screens' } },
-            total_bookings: { $sum: { $size: '$bookings' } },
+            total_bookings: {
+              $sum: {
+                $size: {
+                  $filter: {
+                    input: '$bookings',
+                    cond: { $ne: ['$$this.status', 'cancelled'] }
+                  }
+                }
+              }
+            },
             total_revenue: {
               $sum: {
                 $sum: {
@@ -1426,7 +1469,12 @@ class AdminService {
                     input: {
                       $filter: {
                         input: '$bookings',
-                        cond: { $eq: ['$$this.payment_status', 'completed'] }
+                        cond: {
+                          $and: [
+                            { $eq: ['$$this.payment_status', 'completed'] },
+                            { $ne: ['$$this.status', 'cancelled'] }
+                          ]
+                        }
                       }
                     },
                     in: '$$this.total_amount'
