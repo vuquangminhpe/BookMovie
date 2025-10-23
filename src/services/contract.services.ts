@@ -84,6 +84,18 @@ class ContractService {
     }
 
     const contract_id = new ObjectId()
+    // If theater name/location not provided, try to auto-populate from theaters managed by this staff
+    let autoTheaterName = payload.theater_name
+    let autoTheaterLocation = payload.theater_location
+    try {
+      const managed = await databaseService.theaters.findOne({ manager_id: new ObjectId(payload.staff_id) }, { projection: { name: 1, location: 1 } })
+      if (managed) {
+        if (!autoTheaterName) autoTheaterName = managed.name
+        if (!autoTheaterLocation) autoTheaterLocation = managed.location
+      }
+    } catch (err) {
+      // ignore, not critical
+    }
 
     const contract = new Contract({
       _id: contract_id,
@@ -92,8 +104,8 @@ class ContractService {
       staff_name: payload.staff_name,
       staff_email: payload.staff_email,
       staff_phone: payload.staff_phone,
-      theater_name: payload.theater_name,
-      theater_location: payload.theater_location,
+      theater_name: autoTheaterName,
+      theater_location: autoTheaterLocation,
       salary: payload.salary,
       start_date: new Date(payload.start_date),
       end_date: new Date(payload.end_date),
@@ -158,10 +170,23 @@ class ContractService {
           databaseService.users.findOne({ _id: contract.admin_id }, { projection: { _id: 1, name: 1, email: 1 } })
         ])
 
+        // Find theaters managed by this staff (if staff exists)
+        let theatersManaged: any[] = []
+        if (staff && staff._id) {
+          // Ensure we query with an ObjectId to match stored theater.manager_id
+          const managerObjectId = new ObjectId(String((staff as any)._id))
+          console.log(`DEBUG: Querying theaters for manager_id: ${managerObjectId}`)
+          theatersManaged = await databaseService.theaters
+            .find({ manager_id: managerObjectId }, { projection: { _id: 1, name: 1 } })
+            .toArray()
+          console.log(`DEBUG: Found ${theatersManaged.length} theaters:`, theatersManaged)
+        }
+
         return {
           ...contract,
           staff: staff || null,
-          admin: admin || null
+          admin: admin || null,
+          theaters_managed: theatersManaged.map((t) => ({ _id: t._id, name: t.name }))
         }
       })
     )
@@ -203,10 +228,21 @@ class ContractService {
       databaseService.users.findOne({ _id: contract.admin_id }, { projection: { _id: 1, name: 1, email: 1 } })
     ])
 
+    // Find theaters managed by this staff
+    let theatersManaged: any[] = []
+    if (staff && staff._id) {
+      // Ensure we query with an ObjectId to match stored theater.manager_id
+      const managerObjectId = new ObjectId(String((staff as any)._id))
+      console.log(`DEBUG: Querying theaters for manager_id: ${managerObjectId}`)
+      theatersManaged = await databaseService.theaters.find({ manager_id: managerObjectId }, { projection: { _id: 1, name: 1 } }).toArray()
+      console.log(`DEBUG: Found ${theatersManaged.length} theaters:`, theatersManaged)
+    }
+
     return {
       ...contract,
       staff: staff || null,
-      admin: admin || null
+      admin: admin || null,
+      theaters_managed: theatersManaged.map((t) => ({ _id: t._id, name: t.name }))
     }
   }
 

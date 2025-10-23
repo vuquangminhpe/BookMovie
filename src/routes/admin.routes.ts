@@ -35,7 +35,10 @@ import {
   deleteConciergeController,
   adminGetAllTheatersController,
   adminGetTheaterByIdController,
-  adminGetTheaterOverviewStatsController
+  adminGetTheaterOverviewStatsController,
+  getQuickStatsController,
+  getRecentActivitiesController,
+  getGrowthStatsController
 } from '../controllers/admin.controllers'
 
 // Contract controllers
@@ -320,5 +323,35 @@ adminRouter.get('/theaters/stats', wrapAsync(adminGetTheaterOverviewStatsControl
  * Header: { Authorization: Bearer <access_token> }
  */
 adminRouter.get('/theaters/:theater_id', wrapAsync(adminGetTheaterByIdController))
+
+/**
+ * =============================================================================
+ * QUICK STATS & RECENT ACTIVITIES
+ * =============================================================================
+ */
+
+/**
+ * Description: Get quick stats overview for admin dashboard
+ * Path: /admin/quick-stats
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+adminRouter.get('/quick-stats', wrapAsync(getQuickStatsController))
+
+/**
+ * Description: Get recent activities summary
+ * Path: /admin/recent-activities
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+adminRouter.get('/recent-activities', wrapAsync(getRecentActivitiesController))
+
+/**
+ * Description: Get growth stats compared to previous week
+ * Path: /admin/growth-stats
+ * Method: GET
+ * Header: { Authorization: Bearer <access_token> }
+ */
+adminRouter.get('/growth-stats', wrapAsync(getGrowthStatsController))
 
 export default adminRouter

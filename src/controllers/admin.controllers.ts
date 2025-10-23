@@ -779,3 +779,35 @@ export const adminGetTheaterOverviewStatsController = async (req: Request, res: 
     result
   })
 }
+
+// =============================================================================
+// QUICK STATS & RECENT ACTIVITIES
+// =============================================================================
+
+export const getQuickStatsController = async (req: Request, res: Response) => {
+  const result = await adminService.getQuickStats()
+  res.json({
+    message: 'Get quick stats success',
+    result
+  })
+}
+
+export const getRecentActivitiesController = async (req: Request, res: Response) => {
+  const result = await adminService.getRecentActivities()
+  res.json({
+    message: 'Get recent activities success',
+    result
+  })
+}
+
+// =============================================================================
+// GROWTH STATS
+// =============================================================================
+
+export const getGrowthStatsController = async (req: Request, res: Response) => {
+  const result = await adminService.getGrowthStats()
+  res.json({
+    message: 'Get growth stats success',
+    result
+  })
+}

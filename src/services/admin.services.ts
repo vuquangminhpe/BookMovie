@@ -16,6 +16,7 @@ import { UserVerifyStatus } from '../constants/enums'
 import { FeedbackStatus } from '../models/schemas/Feedback.schema'
 import { BookingStatus, PaymentStatus } from '../models/schemas/Booking.schema'
 import { sendPaymentSuccessEmail, sendPaymentFailedEmail } from '../utils/sendmail'
+import Contract, { ContractStatus } from '../models/schemas/Contact.schema'
 
 class AdminService {
   // User management
@@ -78,13 +79,27 @@ class AdminService {
           databaseService.feedbacks.countDocuments({ user_id: user._id })
         ])
 
+        // If user is staff, include theaters they manage
+        let theatersManaged: any[] = []
+        if (user.role === UserRole.Staff) {
+          try {
+            const managerObjectId = new ObjectId(String((user as any)._id))
+            theatersManaged = await databaseService.theaters
+              .find({ manager_id: managerObjectId }, { projection: { _id: 1, name: 1, location: 1 } })
+              .toArray()
+          } catch (err) {
+            theatersManaged = []
+          }
+        }
+
         return {
           ...user,
           stats: {
             bookings_count: bookingsCount,
             ratings_count: ratingsCount,
             feedbacks_count: feedbacksCount
-          }
+          },
+          theaters_managed: theatersManaged.map((t) => ({ _id: t._id, name: t.name, location: t.location }))
         }
       })
     )
@@ -131,6 +146,17 @@ class AdminService {
       databaseService.feedbacks.find({ user_id: user._id }).toArray()
     ])
 
+    // If user is staff, find theaters they manage
+    let theatersManaged: any[] = []
+    if (user.role === UserRole.Staff) {
+      try {
+        const managerObjectId = new ObjectId(String((user as any)._id))
+        theatersManaged = await databaseService.theaters.find({ manager_id: managerObjectId }, { projection: { _id: 1, name: 1, location: 1 } }).toArray()
+      } catch (err) {
+        theatersManaged = []
+      }
+    }
+
     return {
       ...user,
       stats: {
@@ -143,7 +169,8 @@ class AdminService {
         recent_bookings: bookings.slice(0, 5),
         recent_ratings: ratings.slice(0, 5),
         recent_feedbacks: feedbacks.slice(0, 5)
-      }
+      },
+      theaters_managed: theatersManaged.map((t) => ({ _id: t._id, name: t.name, location: t.location }))
     }
   }
 
@@ -381,7 +408,7 @@ class AdminService {
         {
           $match: {
             ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
-            status: { $ne: 'cancelled' }
+            status: { $ne: BookingStatus.CANCELLED }
           }
         },
         {
@@ -399,7 +426,7 @@ class AdminService {
         {
           $match: {
             ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
-            status: { $ne: 'cancelled' }
+            status: { $ne: BookingStatus.CANCELLED }
           }
         },
         {
@@ -432,7 +459,7 @@ class AdminService {
         {
           $match: {
             ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
-            status: { $ne: 'cancelled' }
+            status: { $ne: BookingStatus.CANCELLED }
           }
         },
         {
@@ -477,7 +504,7 @@ class AdminService {
         {
           $match: {
             ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
-            status: { $ne: 'cancelled' }
+            status: { $ne: BookingStatus.CANCELLED }
           }
         },
         {
@@ -1495,6 +1522,281 @@ class AdminService {
       total_screens: 0,
       total_bookings: 0,
       total_revenue: 0
+    }
+  }
+
+  // =============================================================================
+  // QUICK STATS & RECENT ACTIVITIES
+  // =============================================================================
+
+  // API 1: Thống kê nhanh các thông tin quan trọng
+  async getQuickStats() {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const [
+      activeUsers,
+      newBookings,
+      pendingFeedbacks,
+      pendingRatings,
+      pendingContracts,
+      totalStaff,
+      totalTheaters,
+      totalScreens
+    ] = await Promise.all([
+      // Số người dùng hoạt động (đã đăng nhập trong 30 ngày qua)
+      databaseService.users.countDocuments({
+        last_login_at: { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) }
+      }),
+
+      // Lượt đặt vé mới (trong tháng này)
+      databaseService.bookings.countDocuments({
+        created_at: { $gte: thisMonth },
+        status: { $ne: BookingStatus.CANCELLED }
+      }),
+
+      // Số đánh giá chờ duyệt
+      databaseService.feedbacks.countDocuments({ status: FeedbackStatus.PENDING }),
+
+      // Số rating chờ duyệt (ẩn)
+      databaseService.ratings.countDocuments({ is_hidden: false }),
+
+      // Số hợp đồng chờ duyệt (draft)
+      databaseService.contracts.countDocuments({ status: ContractStatus.DRAFT }),
+
+      // Tổng số nhân viên
+      databaseService.users.countDocuments({ role: UserRole.Staff }),
+
+      // Tổng số rạp
+      databaseService.theaters.countDocuments(),
+
+      // Tổng số màn hình
+      databaseService.screens.countDocuments()
+    ])
+
+    return {
+      active_users: activeUsers,
+      new_bookings_this_month: newBookings,
+      pending_feedbacks: pendingFeedbacks,
+      pending_ratings: pendingRatings,
+      pending_contracts: pendingContracts,
+      total_staff: totalStaff,
+      total_theaters: totalTheaters,
+      total_screens: totalScreens
+    }
+  }
+
+  // API 2: Thống kê nhanh các hoạt động gần đây
+  async getRecentActivities() {
+    const now = new Date()
+    const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    const [
+      newUsers,
+      successfulBookings,
+      newRatings,
+      completedPayments
+    ] = await Promise.all([
+      // Số lượng người dùng mới đăng ký (7 ngày qua)
+      databaseService.users.countDocuments({
+        created_at: { $gte: last7Days }
+      }),
+
+      // Số lượng đặt vé xem phim thành công (7 ngày qua)
+      databaseService.bookings.countDocuments({
+        created_at: { $gte: last7Days },
+        status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED, BookingStatus.USED] },
+        payment_status: PaymentStatus.COMPLETED
+      }),
+
+      // Số lượng đánh giá phim đã được gửi từ user (7 ngày qua)
+      databaseService.ratings.countDocuments({
+        created_at: { $gte: last7Days }
+      }),
+
+      // Số lượng thanh toán đã hoàn thành (7 ngày qua)
+      databaseService.payments.countDocuments({
+        payment_time: { $gte: last7Days },
+        status: PaymentStatus.COMPLETED
+      })
+    ])
+
+    // Thống kê theo ngày trong 7 ngày qua
+    const dailyStats = await databaseService.bookings
+      .aggregate([
+        {
+          $match: {
+            created_at: { $gte: last7Days },
+            status: { $ne: 'cancelled' }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$created_at' },
+              month: { $month: '$created_at' },
+              day: { $dayOfMonth: '$created_at' }
+            },
+            bookings: { $sum: 1 },
+            revenue: { $sum: '$total_amount' }
+          }
+        },
+        {
+          $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+        }
+      ])
+      .toArray()
+
+    const formattedDailyStats = dailyStats.map((item) => ({
+      date: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
+      bookings: item.bookings,
+      revenue: item.revenue
+    }))
+
+    return {
+      period: 'last_7_days',
+      summary: {
+        new_users: newUsers,
+        successful_bookings: successfulBookings,
+        new_ratings: newRatings,
+        completed_payments: completedPayments
+      },
+      daily_stats: formattedDailyStats
+    }
+  }
+
+  // =============================================================================
+  // GROWTH STATS
+  // =============================================================================
+
+  async getGrowthStats() {
+    const now = new Date()
+    const currentWeekStart = new Date(now)
+    currentWeekStart.setDate(now.getDate() - now.getDay()) // Start of current week (Sunday)
+    currentWeekStart.setHours(0, 0, 0, 0)
+
+    const previousWeekStart = new Date(currentWeekStart)
+    previousWeekStart.setDate(currentWeekStart.getDate() - 7) // Start of previous week
+
+    const previousWeekEnd = new Date(currentWeekStart)
+    previousWeekEnd.setMilliseconds(-1) // End of previous week
+
+    // Get current week data
+    const [
+      currentWeekRevenue,
+      currentWeekUsers,
+      currentWeekBookings,
+      currentWeekMovies
+    ] = await Promise.all([
+      // Doanh thu tuần này
+      databaseService.bookings
+        .aggregate([
+          {
+            $match: {
+              created_at: { $gte: currentWeekStart },
+              payment_status: PaymentStatus.COMPLETED,
+              status: { $ne: BookingStatus.CANCELLED }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$total_amount' }
+            }
+          }
+        ])
+        .toArray(),
+
+      // Tổng số người dùng tuần này
+      databaseService.users.countDocuments({
+        created_at: { $gte: currentWeekStart }
+      }),
+
+      // Số lượng đặt vé tuần này
+      databaseService.bookings.countDocuments({
+        created_at: { $gte: currentWeekStart },
+ 
+      }),
+
+      // Số phim đang chiếu tuần này
+      databaseService.movies.countDocuments({
+        created_at: { $gte: currentWeekStart }
+      })
+    ])
+
+    // Get previous week data
+    const [
+      previousWeekRevenue,
+      previousWeekUsers,
+      previousWeekBookings,
+      previousWeekMovies
+    ] = await Promise.all([
+      // Doanh thu tuần trước
+      databaseService.bookings
+        .aggregate([
+          {
+            $match: {
+              created_at: { $gte: previousWeekStart, $lt: currentWeekStart },
+              payment_status: PaymentStatus.COMPLETED,
+              status: { $ne: BookingStatus.CANCELLED }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$total_amount' }
+            }
+          }
+        ])
+        .toArray(),
+
+      // Tổng số người dùng tuần trước
+      databaseService.users.countDocuments({
+        created_at: { $gte: previousWeekStart, $lt: currentWeekStart }
+      }),
+
+      // Số lượng đặt vé tuần trước
+      databaseService.bookings.countDocuments({
+        created_at: { $gte: previousWeekStart, $lt: currentWeekStart },
+      }),
+
+      // Số phim đang chiếu tuần trước
+      databaseService.movies.countDocuments({
+        created_at: { $gte: previousWeekStart, $lt: currentWeekStart }
+      })
+    ])
+
+    // Calculate growth percentages
+    const calculateGrowth = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0
+      return ((current - previous) / previous) * 100
+    }
+
+    const currentRevenue = currentWeekRevenue.length > 0 ? currentWeekRevenue[0].total : 0
+    const previousRevenue = previousWeekRevenue.length > 0 ? previousWeekRevenue[0].total : 0
+
+    return {
+      revenue_growth: {
+        current_week: currentRevenue,
+        previous_week: previousRevenue,
+        growth_percentage: calculateGrowth(currentRevenue, previousRevenue)
+      },
+      users_growth: {
+        current_week: currentWeekUsers,
+        previous_week: previousWeekUsers,
+        growth_percentage: calculateGrowth(currentWeekUsers, previousWeekUsers)
+      },
+      bookings_growth: {
+        current_week: currentWeekBookings,
+        previous_week: previousWeekBookings,
+        growth_percentage: calculateGrowth(currentWeekBookings, previousWeekBookings)
+      },
+      movies_growth: {
+        current_week: currentWeekMovies,
+        previous_week: previousWeekMovies,
+        growth_percentage: calculateGrowth(currentWeekMovies, previousWeekMovies)
+      }
     }
   }
 }
