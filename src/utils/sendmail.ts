@@ -9,9 +9,9 @@ config()
 
 // Tạo transporter cho Nodemailer với cấu hình tối ưu
 const transporter = nodemailer.createTransport({
-  host: envConfig.smtp_host,
-  port: parseInt(envConfig.smtp_port),
-  secure: envConfig.smtp_secure === 'true', // true cho port 465, false cho các port khác
+   host: "smtp.hostinger.com",
+  port: 465,
+  secure: true, 
   auth: {
     user: envConfig.smtp_user,
     pass: envConfig.smtp_pass
@@ -20,14 +20,7 @@ const transporter = nodemailer.createTransport({
   connectionTimeout: 10000, // 10 giây
   greetingTimeout: 10000, // 10 giây
   socketTimeout: 10000, // 10 giây
-  // Bỏ qua lỗi SSL certificate trong môi trường dev (KHÔNG dùng trong production thực tế)
-  tls: {
-    rejectUnauthorized: false,
-    minVersion: 'TLSv1.2'
-  },
-  // Enable debug để dễ troubleshoot
-  debug: process.env.NODE_ENV !== 'production',
-  logger: process.env.NODE_ENV !== 'production'
+  
 })
 
 if (!envConfig.smtp_user || !envConfig.smtp_pass) {
