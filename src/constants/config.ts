@@ -40,9 +40,9 @@ export const envConfig = {
   token_expiry_seconds: parseInt(process.env.DB_REFRESH_TOKENS_COLLECTION || '604800'),
   mailjet_api_key: process.env.MAILJET_API_KEY,
   mailjet_secret_key: process.env.MAILJET_SECRET_KEY,
-  smtp_host: process.env.SMTP_HOST || 'smtp.gmail.com', // Ví dụ sử dụng Gmail
+  smtp_host: process.env.SMTP_HOST || 'smtp.hostinger.com', // Ví dụ sử dụng Hostinger
   smtp_port: process.env.SMTP_PORT || '587',
-  smtp_secure: process.env.SMTP_SECURE || 'false',
+  smtp_secure: process.env.SMTP_SECURE || 'true',
   smtp_user: process.env.SMTP_USER || 'your-email@gmail.com',
   smtp_pass: process.env.SMTP_PASS || 'your-app-password',
   vnpay_tmn_code: process.env.VNPAY_TMN_CODE,
