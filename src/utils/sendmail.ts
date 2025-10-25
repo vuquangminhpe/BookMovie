@@ -10,19 +10,25 @@ config()
 // Tạo transporter cho Nodemailer với cấu hình tối ưu
 const transporter = nodemailer.createTransport({
   host: "smtp.titan.email",
-  port: 465,
-  secure: true, 
+  port: 587,
+  secure: false,  // TLS
+  requireTLS: true,  // ← Thêm dòng này
   auth: {
     user: envConfig.smtp_user,
     pass: envConfig.smtp_pass
   },
-  // Thêm các options để tránh timeout và SSL issues
-  connectionTimeout: 10000, // 10 giây
-  greetingTimeout: 10000, // 10 giây
-  socketTimeout: 10000, // 10 giây
-  
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 })
-
+// Thêm dòng này để debug
+transporter.verify((error) => {
+  if (error) {
+    console.log('❌ SMTP Error:', error);
+  } else {
+    console.log('✅ Server is ready to send emails');
+  }
+});
 if (!envConfig.smtp_user || !envConfig.smtp_pass) {
   console.error('❌ Email credentials not configured. Please add SMTP_USER and SMTP_PASS to your .env file.')
 }
