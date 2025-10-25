@@ -1,4 +1,4 @@
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
+import nodemailer from 'nodemailer'
 import { config } from 'dotenv'
 import { envConfig } from '../constants/config'
 import databaseService from '../services/database.services'
@@ -7,16 +7,19 @@ import { UserVerifyStatus } from '../constants/enums'
 
 config()
 
-const sesv2Client = new SESv2Client({
-  region: envConfig.region,
-  credentials: {
-    accessKeyId: envConfig.accessKeyId as string,
-    secretAccessKey: envConfig.secretAccessKey as string
+// Tạo transporter cho Nodemailer
+const transporter = nodemailer.createTransport({
+  host: envConfig.smtp_host,
+  port: parseInt(envConfig.smtp_port),
+  secure: envConfig.smtp_secure === 'true', // true cho port 465, false cho các port khác
+  auth: {
+    user: envConfig.smtp_user,
+    pass: envConfig.smtp_pass
   }
 })
 
-if (!envConfig.accessKeyId || !envConfig.secretAccessKey) {
-  console.error('❌ AWS credentials not configured. Please add accessKeyId and secretAccessKey to your .env file.')
+if (!envConfig.smtp_user || !envConfig.smtp_pass) {
+  console.error('❌ Email credentials not configured. Please add SMTP_USER and SMTP_PASS to your .env file.')
 }
 
 export const generateVerificationCode = (): string => {
@@ -33,37 +36,19 @@ export const sendEmail = async (
     // If textBody is not provided, strip HTML tags from htmlBody
     const plainTextBody = textBody || htmlBody.replace(/<[^>]*>/g, '')
 
-    // Configure email parameters for SESv2
-    const params = {
-      FromEmailAddress: envConfig.fromAddress || 'no-reply@yourdomain.com',
-      Destination: {
-        ToAddresses: [toAddress]
-      },
-      Content: {
-        Simple: {
-          Subject: {
-            Data: subject,
-            Charset: 'UTF-8'
-          },
-          Body: {
-            Html: {
-              Data: htmlBody,
-              Charset: 'UTF-8'
-            },
-            Text: {
-              Data: plainTextBody,
-              Charset: 'UTF-8'
-            }
-          }
-        }
-      }
+    // Configure email parameters for Nodemailer
+    const mailOptions = {
+      from: `"BookMovie Cinema" <${envConfig.fromAddress}>`,
+      to: toAddress,
+      subject: subject,
+      text: plainTextBody,
+      html: htmlBody
     }
 
     // Send email
-    const command = new SendEmailCommand(params)
-    const response = await sesv2Client.send(command)
+    const info = await transporter.sendMail(mailOptions)
 
-    console.log('✅ Email sent successfully:', response.MessageId)
+    console.log('✅ Email sent successfully:', info.messageId)
     return true
   } catch (error) {
     console.error('❌ Error sending email:', error)
@@ -856,51 +841,22 @@ export const sendPaymentFailedEmail = async (
   return await sendEmail(toAddress, subject, htmlBody)
 }
 
-// Verify SESv2 connection
-export const verifySESConnection = async (): Promise<boolean> => {
+// Verify Nodemailer connection
+export const verifyEmailConnection = async (): Promise<boolean> => {
   try {
-    // For SESv2, we can test the connection by attempting to send a test email
-    // or by using a basic operation. Since there's no direct "verify connection" command,
-    // we'll try to get account sending enabled status
-    const testParams = {
-      FromEmailAddress: envConfig.fromAddress || 'test@example.com',
-      Destination: {
-        ToAddresses: ['test@example.com']
-      },
-      Content: {
-        Simple: {
-          Subject: {
-            Data: 'Test Connection'
-          },
-          Body: {
-            Text: {
-              Data: 'This is a test to verify SESv2 connection'
-            }
-          }
-        }
-      }
-    }
-
-    // We create the command but don't send it - just to test if credentials work
-    const command = new SendEmailCommand(testParams)
-
-    // If we can create the command without credential errors, connection is likely valid
-    console.log('✅ AWS SESv2 client initialized successfully')
-
+    // Verify connection configuration
+    await transporter.verify()
+    console.log('✅ Email server connection verified successfully')
     return true
   } catch (error) {
-    // Check if error is due to invalid credentials
-    if (error instanceof Error && error.name === 'CredentialsProviderError') {
-      console.error('❌ Invalid AWS credentials. Please check your accessKeyId and secretAccessKey.')
-      return false
-    }
-
-    console.error('❌ Error connecting to AWS SESv2:', error)
+    console.error('❌ Error connecting to email server:', error)
+    console.error('Please check your SMTP configuration in .env file')
     return false
   }
 }
 
 // Verify connection when module is imported
-verifySESConnection().catch((err) => {
-  console.error('❌ Error verifying AWS SESv2 connection:', err)
+verifyEmailConnection().catch((err) => {
+  console.error('❌ Error verifying email connection:', err)
 })
+
