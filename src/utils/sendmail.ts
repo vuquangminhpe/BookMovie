@@ -9,7 +9,7 @@ config()
 
 // Tạo transporter cho Nodemailer với cấu hình tối ưu
 const transporter = nodemailer.createTransport({
-   host: "smtp.hostinger.com",
+  host: "smtp.titan.email",
   port: 465,
   secure: true, 
   auth: {
