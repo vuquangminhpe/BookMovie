@@ -10,9 +10,8 @@ config()
 // Tạo transporter cho Nodemailer với cấu hình tối ưu
 const transporter = nodemailer.createTransport({
   host: "smtp.titan.email",
-  port: 587,
-  secure: false,  // TLS
-  requireTLS: true,  // ← Thêm dòng này
+  port: 465,
+  secure: true,  // TLS
   auth: {
     user: envConfig.smtp_user,
     pass: envConfig.smtp_pass
