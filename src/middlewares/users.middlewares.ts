@@ -196,42 +196,7 @@ export const registerValidator = validate(
         }
       },
       password: passwordSchema,
-      confirm_password: confirmPasswordSchema,
-      date_of_birth: { ...DateOfBirthSchema, optional: true },
-      'address.street': {
-        optional: true,
-        isString: true,
-        trim: true
-      },
-      'address.city': {
-        optional: true,
-        isString: true,
-        trim: true
-      },
-      'address.state': {
-        optional: true,
-        isString: true,
-        trim: true
-      },
-      'address.country': {
-        optional: true,
-        isString: true,
-        trim: true
-      },
-      'address.zipCode': {
-        optional: true,
-        isString: true,
-        trim: true
-      },
-      phone: {
-        optional: true,
-        isString: true,
-        trim: true,
-        matches: {
-          options: /^[0-9]{10,15}$/,
-          errorMessage: 'Phone number must be between 10 and 15 digits'
-        }
-      }
+      confirm_password: confirmPasswordSchema
     },
     ['body']
   )
