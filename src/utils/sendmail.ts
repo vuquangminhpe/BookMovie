@@ -9,7 +9,7 @@ config()
 
 // Tạo transporter cho Nodemailer với cấu hình tối ưu
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
+  host: "smtp.hostinger.com",
   port: 465,
   secure: true,  // TLS
   auth: {
@@ -851,5 +851,6 @@ verifyEmailConnection().catch((err) => {
   // Silent fail - app vẫn chạy được mà không có email
   console.error('⚠️  Email verification failed - continuing without email service')
 })
+
 
 
