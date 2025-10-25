@@ -7,7 +7,7 @@ import { UserVerifyStatus } from '../constants/enums'
 
 config()
 
-// Tạo transporter cho Nodemailer
+// Tạo transporter cho Nodemailer với cấu hình tối ưu
 const transporter = nodemailer.createTransport({
   host: envConfig.smtp_host,
   port: parseInt(envConfig.smtp_port),
@@ -15,7 +15,19 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: envConfig.smtp_user,
     pass: envConfig.smtp_pass
-  }
+  },
+  // Thêm các options để tránh timeout và SSL issues
+  connectionTimeout: 10000, // 10 giây
+  greetingTimeout: 10000, // 10 giây
+  socketTimeout: 10000, // 10 giây
+  // Bỏ qua lỗi SSL certificate trong môi trường dev (KHÔNG dùng trong production thực tế)
+  tls: {
+    rejectUnauthorized: false,
+    minVersion: 'TLSv1.2'
+  },
+  // Enable debug để dễ troubleshoot
+  debug: process.env.NODE_ENV !== 'production',
+  logger: process.env.NODE_ENV !== 'production'
 })
 
 if (!envConfig.smtp_user || !envConfig.smtp_pass) {
@@ -38,7 +50,7 @@ export const sendEmail = async (
 
     // Configure email parameters for Nodemailer
     const mailOptions = {
-      from: `"BookMovie Cinema" <${envConfig.fromAddress}>`,
+      from: `"DANGIANVIETNAM" <${envConfig.fromAddress}>`,
       to: toAddress,
       subject: subject,
       text: plainTextBody,
@@ -57,11 +69,11 @@ export const sendEmail = async (
 }
 
 // HTML template for verification code
-const verificationCodeTemplate = `<html lang="en">
+const verificationCodeTemplate = `<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Email Verification</title>
+    <title>Xác thực Email</title>
     <style>
       * {
         margin: 0;
@@ -170,34 +182,34 @@ const verificationCodeTemplate = `<html lang="en">
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo">Your App Name</div>
-        <h2>Email Verification</h2>
+        <div class="logo">DANGIANVIETNAM</div>
+        <h2>Xác thực Email</h2>
       </div>
 
       <div class="content">
-        <h3 class="greeting">Hello {{name}},</h3>
-        <p>Thank you for registering. To complete your registration, please use the verification code below:</p>
+        <h3 class="greeting">Xin chào {{name}},</h3>
+        <p>Cảm ơn bạn đã đăng ký. Để hoàn tất đăng ký, vui lòng sử dụng mã xác thực bên dưới:</p>
 
         <div class="verification-code">{{code}}</div>
 
         <div class="verify-button">
-          <a href="{{verifyLink}}" class="verify-link">Verify Email</a>
+          <a href="{{verifyLink}}" class="verify-link">Xác thực Email</a>
         </div>
 
-        <div class="timer">This code will expire in 2 minutes.</div>
+        <div class="timer">Mã này sẽ hết hạn sau 2 phút.</div>
 
-        <p>Alternatively, you can copy and paste the verification code into the app manually.</p>
+        <p>Ngoài ra, bạn có thể sao chép và dán mã xác thực vào ứng dụng thủ công.</p>
 
         <div class="fallback-link">
-          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p>Nếu nút không hoạt động, hãy sao chép và dán liên kết này vào trình duyệt của bạn:</p>
           <p>{{verifyLink}}</p>
         </div>
 
-        <p>If you did not request this verification, please ignore this email.</p>
+        <p>Nếu bạn không yêu cầu xác thực này, vui lòng bỏ qua email này.</p>
       </div>
 
       <div class="footer">
-        <p>© 2025 Your App Name. All rights reserved.</p>
+        <p>© 2025 DANGIANVIETNAM. Đã đăng ký bản quyền.</p>
       </div>
     </div>
   </body>
@@ -210,8 +222,8 @@ export const sendVerificationCode = async (
   clientUrl?: string,
   accessToken?: string
 ): Promise<boolean> => {
-  const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
-  const subject = 'Your Verification Code'
+  const name = toAddress.split('@')[0]?.split('+')[0] || 'Người dùng'
+  const subject = 'Mã xác thực của bạn'
 
   // Tạo verification link với clientUrl và accessToken nếu có
   let verifyLink = '#'
@@ -259,11 +271,11 @@ export const setupVerificationExpiration = (user_id: string, expirationTime: Dat
 }
 
 // HTML template for password reset link
-const passwordResetTemplate = `<html lang="en">
+const passwordResetTemplate = `<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Password Reset</title>
+    <title>Đặt lại mật khẩu</title>
     <style>
       * {
         margin: 0;
@@ -359,30 +371,30 @@ const passwordResetTemplate = `<html lang="en">
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo">Your App Name</div>
-        <h2>Password Reset</h2>
+        <div class="logo">DANGIANVIETNAM</div>
+        <h2>Đặt lại mật khẩu</h2>
       </div>
 
       <div class="content">
-        <h3 class="greeting">Hello {{name}},</h3>
-        <p>We received a request to reset your password. Click the button below to reset your password:</p>
+        <h3 class="greeting">Xin chào {{name}},</h3>
+        <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu của bạn. Nhấn vào nút bên dưới để đặt lại mật khẩu:</p>
         
         <div class="reset-button">
-          <a href="{{resetLink}}" class="reset-link">Reset Password</a>
+          <a href="{{resetLink}}" class="reset-link">Đặt lại mật khẩu</a>
         </div>
         
-        <div class="timer">This link will expire in 15 minutes.</div>
+        <div class="timer">Liên kết này sẽ hết hạn sau 15 phút.</div>
         
-        <p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
+        <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này hoặc liên hệ bộ phận hỗ trợ nếu bạn có thắc mắc.</p>
         
         <div class="fallback-link">
-          <p>If the button doesn't work, copy and paste this link into your browser:</p>
+          <p>Nếu nút không hoạt động, hãy sao chép và dán liên kết này vào trình duyệt của bạn:</p>
           <p>{{resetLink}}</p>
         </div>
       </div>
 
       <div class="footer">
-        <p>© 2025 Your App Name. All rights reserved.</p>
+        <p>© 2025 DANGIANVIETNAM. Đã đăng ký bản quyền.</p>
       </div>
     </div>
   </body>
@@ -390,22 +402,22 @@ const passwordResetTemplate = `<html lang="en">
 
 // Send password reset code
 export const sendPasswordResetCode = async (toAddress: string, code: string): Promise<boolean> => {
-  const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
-  const subject = 'Password Reset Code'
+  const name = toAddress.split('@')[0]?.split('+')[0] || 'Người dùng'
+  const subject = 'Mã đặt lại mật khẩu'
 
   const htmlBody = verificationCodeTemplate
     .replace('{{name}}', name)
     .replace('{{code}}', code)
-    .replace('Email Verification', 'Password Reset')
-    .replace('To complete your registration', 'To reset your password')
+    .replace('Xác thực Email', 'Đặt lại mật khẩu')
+    .replace('Để hoàn tất đăng ký', 'Để đặt lại mật khẩu của bạn')
 
   return await sendEmail(toAddress, subject, htmlBody)
 }
 
 // Send password reset link
 export const sendPasswordResetLink = async (toAddress: string, resetToken: string): Promise<boolean> => {
-  const name = toAddress.split('@')[0]?.split('+')[0] || 'User'
-  const subject = 'Reset Your Password'
+  const name = toAddress.split('@')[0]?.split('+')[0] || 'Người dùng'
+  const subject = 'Đặt lại mật khẩu của bạn'
 
   // Tạo link reset password với token
   const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`
@@ -416,11 +428,11 @@ export const sendPasswordResetLink = async (toAddress: string, resetToken: strin
 }
 
 // HTML template for payment success email
-const paymentSuccessTemplate = `<html lang="en">
+const paymentSuccessTemplate = `<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Payment Successful</title>
+    <title>Thanh toán thành công</title>
     <style>
       * {
         margin: 0;
@@ -526,77 +538,77 @@ const paymentSuccessTemplate = `<html lang="en">
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo">BookMovie Cinema</div>
-        <h2>Payment Successful!</h2>
+        <div class="logo">DANGIANVIETNAM</div>
+        <h2>Thanh toán thành công!</h2>
       </div>
 
       <div class="content">
         <div class="success-icon">✅</div>
         
-        <h3 class="greeting">Dear {{customerName}},</h3>
-        <p>Your payment has been processed successfully! Your movie tickets are confirmed.</p>
+        <h3 class="greeting">Kính gửi {{customerName}},</h3>
+        <p>Thanh toán của bạn đã được xử lý thành công! Vé xem phim của bạn đã được xác nhận.</p>
         
         <div class="payment-details">
-          <h4>Payment Details</h4>
+          <h4>Chi tiết thanh toán</h4>
           <div class="detail-row">
-            <span class="detail-label">Transaction ID:</span>
+            <span class="detail-label">Mã giao dịch:</span>
             <span class="detail-value">{{transactionId}}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Payment Method:</span>
+            <span class="detail-label">Phương thức thanh toán:</span>
             <span class="detail-value">{{paymentMethod}}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Amount Paid:</span>
+            <span class="detail-label">Số tiền đã thanh toán:</span>
             <span class="detail-value amount">{{amount}} VND</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Payment Date:</span>
+            <span class="detail-label">Ngày thanh toán:</span>
             <span class="detail-value">{{paymentDate}}</span>
           </div>
         </div>
 
         <div class="movie-info">
-          <h4>Booking Details</h4>
+          <h4>Chi tiết đặt vé</h4>
           <div class="detail-row">
-            <span class="detail-label">Movie:</span>
+            <span class="detail-label">Phim:</span>
             <span class="detail-value">{{movieTitle}}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Theater:</span>
+            <span class="detail-label">Rạp:</span>
             <span class="detail-value">{{theaterName}}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Show Date & Time:</span>
+            <span class="detail-label">Ngày & Giờ chiếu:</span>
             <span class="detail-value">{{showDateTime}}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Seats:</span>
+            <span class="detail-label">Ghế:</span>
             <span class="detail-value">{{seats}}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Ticket Code:</span>
+            <span class="detail-label">Mã vé:</span>
             <span class="detail-value">{{ticketCode}}</span>
           </div>
         </div>
         
-        <p>Your e-tickets have been sent to your email. Please present your ticket code or QR code at the cinema.</p>
-        <p>Thank you for choosing BookMovie Cinema!</p>
+        <p>Vé điện tử của bạn đã được gửi qua email. Vui lòng xuất trình mã vé hoặc mã QR tại rạp chiếu phim.</p>
+        <p>Cảm ơn bạn đã chọn DANGIANVIETNAM!</p>
       </div>
 
       <div class="footer">
-        <p>© 2025 BookMovie Cinema. All rights reserved.</p>
+        <p>© 2025 DANGIANVIETNAM. Đã đăng ký bản quyền.</p>
       </div>
     </div>
   </body>
 </html>`
 
 // HTML template for payment failed email
-const paymentFailedTemplate = `<html lang="en">
+const paymentFailedTemplate = `<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Payment Failed</title>
+    <title>Thanh toán thất bại</title>
     <style>
       * {
         margin: 0;
@@ -724,58 +736,58 @@ const paymentFailedTemplate = `<html lang="en">
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo">BookMovie Cinema</div>
-        <h2>Payment Failed</h2>
+        <div class="logo">DANGIANVIETNAM</div>
+        <h2>Thanh toán thất bại</h2>
       </div>
 
       <div class="content">
         <div class="failed-icon">❌</div>
         
-        <h3 class="greeting">Dear {{customerName}},</h3>
-        <p>Unfortunately, your payment could not be processed. Your booking is currently on hold.</p>
+        <h3 class="greeting">Kính gửi {{customerName}},</h3>
+        <p>Rất tiếc, thanh toán của bạn không thể được xử lý. Đặt vé của bạn hiện đang được giữ.</p>
         
         <div class="reason">
-          <strong>Reason:</strong> {{failureReason}}
+          <strong>Lý do:</strong> {{failureReason}}
         </div>
 
         <div class="payment-details">
-          <h4>Payment Details</h4>
+          <h4>Chi tiết thanh toán</h4>
           <div class="detail-row">
-            <span class="detail-label">Transaction ID:</span>
+            <span class="detail-label">Mã giao dịch:</span>
             <span class="detail-value">{{transactionId}}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Payment Method:</span>
+            <span class="detail-label">Phương thức thanh toán:</span>
             <span class="detail-value">{{paymentMethod}}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Amount:</span>
+            <span class="detail-label">Số tiền:</span>
             <span class="detail-value amount">{{amount}} VND</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label">Attempt Date:</span>
+            <span class="detail-label">Ngày thử thanh toán:</span>
             <span class="detail-value">{{attemptDate}}</span>
           </div>
         </div>
 
         <div class="retry-button">
-          <a href="{{retryLink}}" class="retry-link">Try Payment Again</a>
+          <a href="{{retryLink}}" class="retry-link">Thử thanh toán lại</a>
         </div>
         
-        <p><strong>What to do next:</strong></p>
+        <p><strong>Bạn cần làm gì tiếp theo:</strong></p>
         <ul>
-          <li>Check your payment details and try again</li>
-          <li>Ensure you have sufficient funds</li>
-          <li>Contact your bank if the issue persists</li>
-          <li>Reach out to our support team for assistance</li>
+          <li>Kiểm tra thông tin thanh toán và thử lại</li>
+          <li>Đảm bảo tài khoản của bạn có đủ số dư</li>
+          <li>Liên hệ ngân hàng nếu vấn đề vẫn tiếp diễn</li>
+          <li>Liên hệ đội ngũ hỗ trợ của chúng tôi để được trợ giúp</li>
         </ul>
         
-        <p>Your booking will be held for 15 minutes. Please complete the payment to confirm your seats.</p>
+        <p>Đặt vé của bạn sẽ được giữ trong 15 phút. Vui lòng hoàn tất thanh toán để xác nhận ghế của bạn.</p>
       </div>
 
       <div class="footer">
-        <p>© 2025 BookMovie Cinema. All rights reserved.</p>
-        <p>Need help? Contact our support team at support@bookmovie.com</p>
+        <p>© 2025 DANGIANVIETNAM. Đã đăng ký bản quyền.</p>
+        <p>Cần trợ giúp? Liên hệ đội ngũ hỗ trợ của chúng tôi tại support@bookmovie.com</p>
       </div>
     </div>
   </body>
@@ -797,7 +809,7 @@ export const sendPaymentSuccessEmail = async (
     ticketCode: string
   }
 ): Promise<boolean> => {
-  const subject = 'Payment Successful - Your Movie Tickets are Confirmed!'
+  const subject = 'Thanh toán thành công - Vé xem phim của bạn đã được xác nhận!'
 
   const htmlBody = paymentSuccessTemplate
     .replace(/{{customerName}}/g, paymentData.customerName)
@@ -827,7 +839,7 @@ export const sendPaymentFailedEmail = async (
     retryLink: string
   }
 ): Promise<boolean> => {
-  const subject = 'Payment Failed - Action Required'
+  const subject = 'Thanh toán thất bại - Yêu cầu hành động'
 
   const htmlBody = paymentFailedTemplate
     .replace(/{{customerName}}/g, paymentData.customerName)
@@ -844,19 +856,37 @@ export const sendPaymentFailedEmail = async (
 // Verify Nodemailer connection
 export const verifyEmailConnection = async (): Promise<boolean> => {
   try {
-    // Verify connection configuration
-    await transporter.verify()
+    // Verify connection configuration với timeout
+    const verifyPromise = transporter.verify()
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection verification timeout')), 8000)
+    )
+    
+    await Promise.race([verifyPromise, timeoutPromise])
     console.log('✅ Email server connection verified successfully')
     return true
   } catch (error) {
     console.error('❌ Error connecting to email server:', error)
-    console.error('Please check your SMTP configuration in .env file')
+    console.log('\n📋 Troubleshooting tips:')
+    console.log('   1. Check if SMTP host and port are correct in .env')
+    console.log(`      Current: ${envConfig.smtp_host}:${envConfig.smtp_port}`)
+    console.log('   2. If using Gmail, make sure you have App Password (not regular password)')
+    console.log('   3. Try different ports: 587 (TLS), 465 (SSL), or 2525')
+    console.log('   4. Check if your hosting/firewall blocks SMTP ports')
+    console.log('   5. For Render/Vercel/Railway, try using port 2525 or alternative SMTP service')
+    console.log('\n💡 Alternative SMTP services that work well with cloud hosting:')
+    console.log('   - SendGrid (smtp.sendgrid.net:587)')
+    console.log('   - Mailgun (smtp.mailgun.org:587)')
+    console.log('   - Brevo/Sendinblue (smtp-relay.brevo.com:587)')
+    console.log('   - AWS SES (email-smtp.region.amazonaws.com:587)')
+    console.log('\n⚠️  Email service is disabled. App will continue without email functionality.\n')
     return false
   }
 }
 
-// Verify connection when module is imported
+// Verify connection when module is imported - không chặn app startup
 verifyEmailConnection().catch((err) => {
-  console.error('❌ Error verifying email connection:', err)
+  // Silent fail - app vẫn chạy được mà không có email
+  console.error('⚠️  Email verification failed - continuing without email service')
 })
 
