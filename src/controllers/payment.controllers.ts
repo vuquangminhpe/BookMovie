@@ -300,7 +300,7 @@ function generateSuccessEmailTemplate({
                         <li>Vui lòng có mặt tại rạp trước giờ chiếu 15 phút</li>
                         <li>Mang theo mã vé và giấy tờ tùy thân để nhận vé</li>
                         <li>Vé không thể hoàn trả sau khi đã thanh toán</li>
-                        <li>Liên hệ hotline nếu cần hỗ trợ: +84-357-663-145</li>
+                        <li>Liên hệ hotline nếu cần hỗ trợ: 0356055320</li>
                     </ul>
                 </div>
             </div>
@@ -308,7 +308,7 @@ function generateSuccessEmailTemplate({
             <!-- Footer -->
             <div class="footer">
                 <p><strong>DANGIANVIETNAM</strong></p>
-                <p>contact@dangianvietnam.com | +84-357-663-145</p>
+                <p>contact@dangianvietnam.com | 0356055320</p>
                 <p>www.dangianvietnam.com</p>
                
                 <p style="font-size: 12px; margin-top: 15px; opacity: 0.8;">
@@ -475,7 +475,7 @@ function generateFailedEmailTemplate({
                         Nếu bạn tiếp tục gặp sự cố, vui lòng liên hệ với chúng tôi:
                     </p>
                     <ul style="padding-left: 20px; color: #495057;">
-                        <li> Hotline: +84-357-663-145 (24/7)</li>
+                        <li> Hotline: 0356055320 (24/7)</li>
                         <li> Email: support@moviebooking.com</li>
                         <li> Live Chat trên website</li>
                     </ul>
@@ -497,7 +497,7 @@ function generateFailedEmailTemplate({
             <!-- Footer -->
             <div class="footer">
                 <p><strong>DANGIANVIETNAM</strong></p>
-                <p>support@moviebooking.com | +84-357-663-145</p>
+                <p>support@moviebooking.com | 0356055320</p>
                 <p>www.moviebooking.com</p>
                 <p style="font-size: 12px; margin-top: 15px; opacity: 0.8;">
                     © 2025 DANGIANVIETNAM. All rights reserved.
@@ -824,7 +824,7 @@ function generateSepaySuccessEmailTemplate({
 
             <div class="footer">
                 <p><strong>DANGIANVIETNAM</strong></p>
-                <p>support@moviebooking.com | +84-357-663-145</p>
+                <p>support@moviebooking.com | 0356055320</p>
                 <p>© 2025 DANGIANVIETNAM. All rights reserved.</p>
             </div>
         </div>
