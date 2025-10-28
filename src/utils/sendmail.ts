@@ -96,6 +96,7 @@ const verificationCodeTemplate = `<html lang="vi">
       }
 
       .header {
+       background-color: #74000A;
         text-align: center;
         padding: 20px 0;
         border-bottom: 1px solid #eaeaea;

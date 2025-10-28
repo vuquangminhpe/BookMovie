@@ -153,7 +153,7 @@ function generateSuccessEmailTemplate({
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; }
             .container { max-width: 600px; margin: 0 auto; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+            .header { background: #74000A; color: white; padding: 30px; text-align: center; }
             .header h1 { font-size: 28px; margin-bottom: 10px; }
             .header p { opacity: 0.9; font-size: 16px; }
             .content { padding: 30px; }
@@ -189,7 +189,7 @@ function generateSuccessEmailTemplate({
         <div class="container">
             <!-- Header -->
             <div class="header">
-                <h1>🎬 MovieBooking Cinema</h1>
+                <h1>DANGIANVIETNAM</h1>
                 <p>Cảm ơn bạn đã chọn chúng tôi!</p>
             </div>
 
@@ -206,7 +206,7 @@ function generateSuccessEmailTemplate({
                     Chào <strong>${user.name || user.email}</strong>,
                 </p>
                 <p style="margin-bottom: 25px;">
-                    Cảm ơn bạn đã đặt vé tại MovieBooking Cinema. Thanh toán của bạn đã được xử lý thành công và vé đã được xác nhận.
+                    Cảm ơn bạn đã đặt vé tại DANGIANVIETNAM. Thanh toán của bạn đã được xử lý thành công và vé đã được xác nhận.
                 </p>
 
                 <!-- Movie Info -->
@@ -300,23 +300,19 @@ function generateSuccessEmailTemplate({
                         <li>Vui lòng có mặt tại rạp trước giờ chiếu 15 phút</li>
                         <li>Mang theo mã vé và giấy tờ tùy thân để nhận vé</li>
                         <li>Vé không thể hoàn trả sau khi đã thanh toán</li>
-                        <li>Liên hệ hotline nếu cần hỗ trợ: 1900-xxxx</li>
+                        <li>Liên hệ hotline nếu cần hỗ trợ: +84-357-663-145</li>
                     </ul>
                 </div>
             </div>
 
             <!-- Footer -->
             <div class="footer">
-                <p><strong>MovieBooking Cinema</strong></p>
-                <p>support@moviebooking.com | 1900-xxxx</p>
-                <p>www.moviebooking.com</p>
-                <div class="social-links">
-                    <a href="#">Facebook</a> | 
-                    <a href="#">Instagram</a> | 
-                    <a href="#">YouTube</a>
-                </div>
+                <p><strong>DANGIANVIETNAM</strong></p>
+                <p>contact@dangianvietnam.com | +84-357-663-145</p>
+                <p>www.dangianvietnam.com</p>
+               
                 <p style="font-size: 12px; margin-top: 15px; opacity: 0.8;">
-                    © 2025 MovieBooking Cinema. All rights reserved.
+                    © 2025 DANGIANVIETNAM. All rights reserved.
                 </p>
             </div>
         </div>
@@ -393,7 +389,7 @@ function generateFailedEmailTemplate({
         <div class="container">
             <!-- Header -->
             <div class="header">
-                <h1>MovieBooking Cinema</h1>
+                <h1>DANGIANVIETNAM</h1>
                 <p>Thông báo thanh toán</p>
             </div>
 
@@ -479,7 +475,7 @@ function generateFailedEmailTemplate({
                         Nếu bạn tiếp tục gặp sự cố, vui lòng liên hệ với chúng tôi:
                     </p>
                     <ul style="padding-left: 20px; color: #495057;">
-                        <li> Hotline: 1900-xxxx (24/7)</li>
+                        <li> Hotline: +84-357-663-145 (24/7)</li>
                         <li> Email: support@moviebooking.com</li>
                         <li> Live Chat trên website</li>
                     </ul>
@@ -500,11 +496,11 @@ function generateFailedEmailTemplate({
 
             <!-- Footer -->
             <div class="footer">
-                <p><strong>MovieBooking Cinema</strong></p>
-                <p>support@moviebooking.com | 1900-xxxx</p>
+                <p><strong>DANGIANVIETNAM</strong></p>
+                <p>support@moviebooking.com | +84-357-663-145</p>
                 <p>www.moviebooking.com</p>
                 <p style="font-size: 12px; margin-top: 15px; opacity: 0.8;">
-                    © 2025 MovieBooking Cinema. All rights reserved.
+                    © 2025 DANGIANVIETNAM. All rights reserved.
                 </p>
             </div>
         </div>
@@ -751,7 +747,7 @@ function generateSepaySuccessEmailTemplate({
     <body>
         <div class="container">
             <div class="header">
-                <h1>🎬 MovieBooking Cinema</h1>
+                <h1>DANGIANVIETNAM</h1>
                 <p>Cảm ơn bạn đã chọn chúng tôi!</p>
             </div>
 
@@ -765,7 +761,7 @@ function generateSepaySuccessEmailTemplate({
                     Chào <strong>${user.name || user.email}</strong>,
                 </p>
                 <p style="margin-bottom: 25px;">
-                    Cảm ơn bạn đã đặt vé tại MovieBooking Cinema. Thanh toán qua chuyển khoản ngân hàng của bạn đã được xử lý thành công và vé đã được xác nhận.
+                    Cảm ơn bạn đã đặt vé tại DANGIANVIETNAM. Thanh toán qua chuyển khoản ngân hàng của bạn đã được xử lý thành công và vé đã được xác nhận.
                 </p>
 
                 <div class="ticket-info">
@@ -827,9 +823,9 @@ function generateSepaySuccessEmailTemplate({
             </div>
 
             <div class="footer">
-                <p><strong>MovieBooking Cinema</strong></p>
-                <p>support@moviebooking.com | 1900-xxxx</p>
-                <p>© 2025 MovieBooking Cinema. All rights reserved.</p>
+                <p><strong>DANGIANVIETNAM</strong></p>
+                <p>support@moviebooking.com | +84-357-663-145</p>
+                <p>© 2025 DANGIANVIETNAM. All rights reserved.</p>
             </div>
         </div>
     </body>
