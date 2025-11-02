@@ -3,6 +3,7 @@ import databaseService from './services/database.services'
 import usersRouter from './routes/user.routes'
 import { defaultErrorHandler } from './middlewares/error.middlewares'
 import mediasRouter from './routes/medias.routes'
+import moviesRouter from './routes/movies.routes'
 import { config } from 'dotenv'
 import staticRouter from './routes/static.routes'
 import { initFolderImage, initFolderVideo, initFolderVideoHls, initFolderTemp } from './utils/file'
@@ -297,6 +298,7 @@ app.get('/admin/banner-slider-home/status', async (req, res) => {
 // Routes (giữ nguyên thứ tự cũ)
 app.use('/users', usersRouter)
 app.use('/medias', mediasRouter)
+app.use('/movies', moviesRouter)
 app.use('/static', staticRouter)
 app.use('/cinema', cinemaRouter)
 app.use('/admin', adminRouter)

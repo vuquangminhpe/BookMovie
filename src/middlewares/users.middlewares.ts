@@ -196,7 +196,52 @@ export const registerValidator = validate(
         }
       },
       password: passwordSchema,
-      confirm_password: confirmPasswordSchema
+      confirm_password: confirmPasswordSchema,
+
+      // Đây là cách làm ĐÚNG để trường này thực sự optional
+      date_of_birth: {
+        ...DateOfBirthSchema,
+        optional: true
+      },
+
+      'address.street': {
+        optional: true, // Giả sử address chỉ cần 'optional: true' là đủ
+        isString: true,
+        trim: true
+      },
+      'address.city': {
+        optional: true,
+        isString: true,
+        trim: true
+      },
+      'address.state': {
+        optional: true,
+        isString: true,
+        trim: true
+      },
+      'address.country': {
+        optional: true,
+        isString: true,
+        trim: true
+      },
+      'address.zipCode': {
+        optional: true,
+        isString: true,
+        trim: true
+      },
+
+      // Tương tự date_of_birth, đây là cách làm ĐÚNG
+      // để phone có thể là undefined, null, hoặc chuỗi rỗng
+      // mà không bị validator 'isString' hoặc 'matches' báo lỗi.
+      phone: {
+        optional: true,
+        isString: true,
+        trim: true,
+        matches: {
+          options: /^[0-9]{10,15}$/,
+          errorMessage: 'Phone number must be between 10 and 15 digits'
+        }
+      }
     },
     ['body']
   )

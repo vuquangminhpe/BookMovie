@@ -243,7 +243,8 @@ export const getAvailableLanguagesController = async (req: Request, res: Respons
 }
 
 export const getTopRevenueMoviesController = async (req: Request, res: Response) => {
-  const result = await movieService.getTopRevenueMovies(10)
+  const limit = parseInt(req.query.limit as string) || 10
+  const result = await movieService.getTopRevenueMovies(limit)
   res.json({
     message: 'Top 10 phim có doanh thu cao nhất',
     result

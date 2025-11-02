@@ -705,8 +705,8 @@ class MovieService {
                   as: 'booking',
                   in: {
                     $cond: [
-                      { $eq: ['$$booking.status', 'confirmed'] },
-                      '$$booking.total_price',
+                      { $and: [ { $eq: ['$$booking.status', 'confirmed'] }, { $eq: ['$$booking.payment_status', 'completed'] } ] },
+                      '$$booking.total_amount',
                       0
                     ]
                   }
