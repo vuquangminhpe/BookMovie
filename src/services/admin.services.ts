@@ -453,24 +453,25 @@ class AdminService {
       revenue: item.revenue
     }))
 
-    // Get top movies by bookings
+    // Get top movies by tickets sold (sum of seats in bookings)
     const topMovies = await databaseService.bookings
       .aggregate([
         {
           $match: {
             ...(dateFilter.$gte ? { created_at: dateFilter } : {}),
-            status: { $ne: BookingStatus.CANCELLED }
+            status: { $ne: BookingStatus.CANCELLED },
+            payment_status: PaymentStatus.COMPLETED
           }
         },
         {
           $group: {
             _id: '$movie_id',
-            bookings_count: { $sum: 1 },
+            tickets_sold: { $sum: { $size: '$seats' } },
             revenue: { $sum: '$total_amount' }
           }
         },
         {
-          $sort: { bookings_count: -1 }
+          $sort: { tickets_sold: -1 }
         },
         {
           $limit: 5
@@ -491,7 +492,7 @@ class AdminService {
             movie_id: '$_id',
             title: '$movie_info.title',
             poster_url: '$movie_info.poster_url',
-            bookings_count: 1,
+            tickets_sold: 1,
             revenue: 1
           }
         }
